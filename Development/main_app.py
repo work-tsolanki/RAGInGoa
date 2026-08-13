@@ -6,7 +6,6 @@ This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guard
 """
 
 import time
-import json
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
@@ -89,30 +88,16 @@ def initialize_services():
         # Embedding
         print("  → Loading embedding model...")
         embedding_service = EmbeddingService()
-        
-        # Whoosh (load test data)
-        print("  → Loading Whoosh index...")
-        with open("data/test_chunks.json", encoding="utf-8") as f:
-            chunks = json.load(f)
-        whoosh_service = WhooshService(chunks=chunks)
-        
-        # Chroma (local, persistent vector DB)
-        print("  → Initializing Chroma...")
-        chroma_service = ChromaService()
 
-        # Index chunks in Chroma
-        embeddings_to_upsert = []
-        for chunk in chunks:
-            emb = embedding_service.embed_query(chunk["content"])
-            metadata = dict(chunk.get("metadata", {}))
-            metadata["content"] = chunk["content"]
-            embeddings_to_upsert.append({
-                "id": chunk["doc_id"],
-                "embedding": emb.tolist(),
-                "metadata": metadata
-            })
-        chroma_service.upsert(embeddings_to_upsert)
-        
+        # Whoosh: open the pre-built full-scale index (743k+ MSMARCO-XI passages,
+        # built offline by scripts/chunk_and_index.py - do not rebuild on every startup)
+        print("  → Opening full-scale Whoosh index...")
+        whoosh_service = WhooshService(index_dir="whoosh_index_full")
+
+        # Chroma: open the pre-built full-scale persistent collection
+        print("  → Opening full-scale Chroma collection...")
+        chroma_service = ChromaService(collection_name="hhgoa_rag_full")
+
         # Generation
         print("  → Loading LLM generation service...")
         generation_service = GenerationService(use_local=USE_LOCAL_LLM)

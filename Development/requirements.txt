@@ -31,6 +31,12 @@ anthropic==0.7.0                      # Claude API
 requests==2.31.0                      # HTTP requests
 
 # ============================================================================
+# Dataset preparation
+# ============================================================================
+datasets==2.14.6                      # HuggingFace datasets (streaming parquet reads)
+huggingface_hub==0.17.3               # Pinned: tokenizers==0.14.1 requires huggingface_hub<0.18
+
+# ============================================================================
 # STT & Audio (optional)
 # ============================================================================
 # librosa==0.10.0                     # Audio processing (if local)

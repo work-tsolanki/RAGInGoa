@@ -13,6 +13,7 @@ env/
 
 # Generated indexes / data artifacts
 whoosh_index/
+whoosh_index_full/
 **/data/msmarco-xi/
 **/data/chroma_db/
 
