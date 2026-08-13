@@ -5,6 +5,7 @@ File: src/main.py
 This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guardrails
 """
 
+import secrets
 import time
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Depends
@@ -50,10 +51,17 @@ app.add_middleware(
 )
 
 
+if not RAG_API_KEY:
+    print("WARNING: RAG_API_KEY is not set - /query and /query_audio are UNAUTHENTICATED. "
+          "Set RAG_API_KEY in .env before exposing this server publicly.")
+
+
 def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
     """Require a matching X-API-Key header when RAG_API_KEY is configured.
-    If RAG_API_KEY isn't set (e.g. local dev), auth is skipped."""
-    if RAG_API_KEY and x_api_key != RAG_API_KEY:
+    If RAG_API_KEY isn't set (e.g. local dev), auth is skipped - see the
+    startup warning above, which makes this fail-open behavior visible
+    rather than silent."""
+    if RAG_API_KEY and not secrets.compare_digest(x_api_key or "", RAG_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # ============================================================================
