@@ -19,3 +19,10 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 USE_LOCAL_LLM = True
 USE_CLAUDE_FALLBACK = True
+
+LOCAL_LLM_MODEL_PATH = os.getenv(
+    "LOCAL_LLM_MODEL_PATH",
+    "models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+)
+LOCAL_LLM_N_CTX = 4096
+LOCAL_LLM_MAX_TOKENS = 200

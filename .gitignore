@@ -16,6 +16,7 @@ whoosh_index/
 whoosh_index_full/
 **/data/msmarco-xi/
 **/data/chroma_db/
+**/models/*.gguf
 
 # IDE
 .vscode/

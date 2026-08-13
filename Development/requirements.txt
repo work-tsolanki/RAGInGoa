@@ -29,6 +29,7 @@ python-multipart==0.0.6               # File upload support
 # ============================================================================
 anthropic==0.7.0                      # Claude API
 requests==2.31.0                      # HTTP requests
+llama-cpp-python                      # Local LLM inference (GGUF models, CPU/GPU)
 
 # ============================================================================
 # Dataset preparation
