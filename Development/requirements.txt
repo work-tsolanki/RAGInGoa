@@ -1,0 +1,74 @@
+# HH Goa 2026 RAG System - Python Dependencies
+
+# ============================================================================
+# Core ML & NLP
+# ============================================================================
+torch==2.0.0                          # PyTorch (install with CUDA separately)
+transformers==4.34.0                  # Hugging Face transformers
+sentence-transformers==2.2.2          # For embeddings (AI4Bharat)
+numpy==1.24.3                         # Numerical computing
+scipy==1.11.0                         # Scientific computing
+
+# ============================================================================
+# Retrieval & Search
+# ============================================================================
+whoosh==2.7.4                         # BM25 search indexing
+pinecone-client==3.0.2                # Pinecone vector DB
+
+# ============================================================================
+# Web Framework & APIs
+# ============================================================================
+fastapi==0.104.0                      # Web framework
+uvicorn==0.24.0                       # ASGI server
+httpx==0.25.0                         # HTTP client
+pydantic==2.4.2                       # Data validation (>=2.4.2 required by fastapi==0.104.0)
+python-multipart==0.0.6               # File upload support
+
+# ============================================================================
+# LLM APIs
+# ============================================================================
+anthropic==0.7.0                      # Claude API
+requests==2.31.0                      # HTTP requests
+
+# ============================================================================
+# STT & Audio (optional)
+# ============================================================================
+# librosa==0.10.0                     # Audio processing (if local)
+# pydub==0.25.1                       # Audio manipulation
+
+# ============================================================================
+# Testing & Development
+# ============================================================================
+pytest==7.4.0                         # Testing framework
+pytest-asyncio==0.21.0                # Async test support
+pytest-cov==4.1.0                     # Coverage reports
+
+# ============================================================================
+# Utilities
+# ============================================================================
+python-dotenv==1.0.0                  # Environment variables
+tqdm==4.66.0                          # Progress bars
+pandas==2.1.0                         # Data manipulation
+pyyaml==6.0                           # YAML parsing
+
+# ============================================================================
+# Logging & Monitoring
+# ============================================================================
+# datadog==0.45.0                     # Datadog monitoring (optional)
+# sentry-sdk==1.32.0                  # Error tracking (optional)
+
+# ============================================================================
+# Code Quality (development only)
+# ============================================================================
+# black==23.9.0                       # Code formatter
+# pylint==2.17.5                      # Linter
+# mypy==1.5.0                         # Type checking
+
+# ============================================================================
+# Notes
+# ============================================================================
+# PyTorch with CUDA 12.1 support should be installed separately:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# On CPU-only systems, remove torch from this file and use:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu

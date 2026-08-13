@@ -1,0 +1,26 @@
+[
+  {
+    "doc_id": "doc_001",
+    "language": "en",
+    "content": "Aadhaar is a 12-digit unique identity number issued to all Indian residents by the Unique Identification Authority of India (UIDAI). It serves as proof of identity and address.",
+    "metadata": {"section": "Identity", "confidence": 0.95}
+  },
+  {
+    "doc_id": "doc_002",
+    "language": "hi",
+    "content": "आधार भारत में सभी निवासियों को जारी किया जाने वाला एक 12 अंकों की अद्वितीय पहचान संख्या है।",
+    "metadata": {"section": "Parichay", "confidence": 0.92}
+  },
+  {
+    "doc_id": "doc_003",
+    "language": "en",
+    "content": "To apply for Aadhaar, you need to visit an Aadhaar enrollment center with proof of residence and identity. The process is free.",
+    "metadata": {"section": "Application", "confidence": 0.88}
+  },
+  {
+    "doc_id": "doc_004",
+    "language": "ta",
+    "content": "ஆதார் என்பது இந்தியாவில் உள்ள அனைத்து குடிமக்களுக்கும் வழங்கப்படும் 12 இலக்கக் தனித்துவமான அடையாள எண்.",
+    "metadata": {"section": "Identity", "confidence": 0.85}
+  }
+]
