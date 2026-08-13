@@ -13,7 +13,7 @@ scipy==1.11.0                         # Scientific computing
 # Retrieval & Search
 # ============================================================================
 whoosh==2.7.4                         # BM25 search indexing
-pinecone-client==3.0.2                # Pinecone vector DB
+chromadb                              # Local, persistent vector DB (no API key needed)
 
 # ============================================================================
 # Web Framework & APIs

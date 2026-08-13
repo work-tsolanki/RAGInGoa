@@ -22,7 +22,7 @@ from config import (
 )
 from src.embedding_service import EmbeddingService
 from src.whoosh_service import WhooshService
-from src.pinecone_service import PineconeService
+from src.chroma_service import ChromaService
 from src.retrieval import merge_and_rank
 from src.generation_service import GenerationService
 from src.guardrails import Guardrails
@@ -75,13 +75,13 @@ class HealthResponse(BaseModel):
 
 embedding_service = None
 whoosh_service = None
-pinecone_service = None
+chroma_service = None
 generation_service = None
 guardrails = None
 
 def initialize_services():
     """Initialize all services on startup."""
-    global embedding_service, whoosh_service, pinecone_service, generation_service, guardrails
+    global embedding_service, whoosh_service, chroma_service, generation_service, guardrails
     
     print("[main.py] Initializing services...")
     
@@ -96,11 +96,11 @@ def initialize_services():
             chunks = json.load(f)
         whoosh_service = WhooshService(chunks=chunks)
         
-        # Pinecone (with mock fallback)
-        print("  → Initializing Pinecone...")
-        pinecone_service = PineconeService(use_mock=True)
-        
-        # Index chunks in Pinecone
+        # Chroma (local, persistent vector DB)
+        print("  → Initializing Chroma...")
+        chroma_service = ChromaService()
+
+        # Index chunks in Chroma
         embeddings_to_upsert = []
         for chunk in chunks:
             emb = embedding_service.embed_query(chunk["content"])
@@ -111,7 +111,7 @@ def initialize_services():
                 "embedding": emb.tolist(),
                 "metadata": metadata
             })
-        pinecone_service.upsert(embeddings_to_upsert)
+        chroma_service.upsert(embeddings_to_upsert)
         
         # Generation
         print("  → Loading LLM generation service...")
@@ -148,7 +148,7 @@ async def health_check():
         ready=all([
             embedding_service,
             whoosh_service,
-            pinecone_service,
+            chroma_service,
             generation_service,
             guardrails
         ])
@@ -180,7 +180,7 @@ async def query_endpoint(request: QueryRequest):
         
         # ====== Step 3: Parallel Retrieval ======
         start = time.time()
-        dense_results = pinecone_service.query(
+        dense_results = chroma_service.query(
             query_embedding.tolist(),
             top_k=10
         )

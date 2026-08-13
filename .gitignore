@@ -13,7 +13,8 @@ env/
 
 # Generated indexes / data artifacts
 whoosh_index/
-data/msmarco-xi/
+**/data/msmarco-xi/
+**/data/chroma_db/
 
 # IDE
 .vscode/
