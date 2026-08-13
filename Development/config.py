@@ -6,6 +6,7 @@ load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "mock")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "mock")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "mock")
+RAG_API_KEY = os.getenv("RAG_API_KEY")
 
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 EMBEDDING_DIMENSION = 384

@@ -7,7 +7,7 @@ This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guard
 
 import time
 from typing import Optional, List
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ sys.path.insert(0, '.')
 
 from config import (
     DEBUG, LOG_LEVEL, MAX_LATENCY_MS, TOP_K_FINAL,
-    USE_LOCAL_LLM, USE_CLAUDE_FALLBACK
+    USE_LOCAL_LLM, USE_CLAUDE_FALLBACK, RAG_API_KEY
 )
 from src.embedding_service import EmbeddingService
 from src.whoosh_service import WhooshService
@@ -38,13 +38,23 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# allow_credentials=False: auth is via X-API-Key header, not cookies, and the
+# combination of allow_origins=["*"] with allow_credentials=True is both
+# insecure and rejected by browsers anyway.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
+    """Require a matching X-API-Key header when RAG_API_KEY is configured.
+    If RAG_API_KEY isn't set (e.g. local dev), auth is skipped."""
+    if RAG_API_KEY and x_api_key != RAG_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # ============================================================================
 # Data Models
@@ -139,7 +149,7 @@ async def health_check():
         ])
     )
 
-@app.post("/query", response_model=QueryResponse)
+@app.post("/query", response_model=QueryResponse, dependencies=[Depends(verify_api_key)])
 async def query_endpoint(request: QueryRequest):
     """
     Process a text query through the full RAG pipeline.
@@ -242,7 +252,7 @@ async def query_endpoint(request: QueryRequest):
             print(f"✗ Query failed: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.post("/query_audio")
+@app.post("/query_audio", dependencies=[Depends(verify_api_key)])
 async def query_audio_endpoint(
     audio: UploadFile = File(...),
     language: str = "en"
