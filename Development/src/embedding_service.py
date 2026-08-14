@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from config import EMBEDDING_MODEL, DEBUG
@@ -8,11 +9,12 @@ class EmbeddingService:
 
     def __init__(self, model_name: str = EMBEDDING_MODEL):
         """Load embedding model."""
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         if DEBUG:
-            print(f"[EmbeddingService] Loading {model_name}...")
+            print(f"[EmbeddingService] Loading {model_name} on {device}...")
 
         try:
-            self.model = SentenceTransformer(model_name, device="cpu")
+            self.model = SentenceTransformer(model_name, device=device)
             self.dimension = self.model.get_sentence_embedding_dimension()
 
             if DEBUG:

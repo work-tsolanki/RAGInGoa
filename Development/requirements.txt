@@ -3,7 +3,10 @@
 # ============================================================================
 # Core ML & NLP
 # ============================================================================
-torch==2.0.0                          # PyTorch (install with CUDA separately)
+# GPU (RTX 50-series / Blackwell, sm_120): install first from the cu128 index:
+#   pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.7.1+cu128
+# CPU-only (e.g. the deployed VM): plain `pip install torch==2.7.1` is fine.
+torch==2.7.1
 transformers==4.34.0                  # Hugging Face transformers
 sentence-transformers==2.2.2          # For embeddings (AI4Bharat)
 numpy==1.24.3                         # Numerical computing
@@ -13,7 +16,7 @@ scipy==1.11.0                         # Scientific computing
 # Retrieval & Search
 # ============================================================================
 whoosh==2.7.4                         # BM25 search indexing
-chromadb                              # Local, persistent vector DB (no API key needed)
+chromadb==1.5.9                       # Local, persistent vector DB (no API key needed)
 
 # ============================================================================
 # Web Framework & APIs
@@ -29,7 +32,9 @@ python-multipart==0.0.6               # File upload support
 # ============================================================================
 anthropic==0.7.0                      # Claude API
 requests==2.31.0                      # HTTP requests
-llama-cpp-python                      # Local LLM inference (GGUF models, CPU/GPU)
+llama-cpp-python                      # Local LLM inference (GGUF models, CPU/GPU).
+                                       # For GPU: build from source with CUDA -
+                                       # see Markdown/GPU_SETUP.md.
 
 # ============================================================================
 # Dataset preparation

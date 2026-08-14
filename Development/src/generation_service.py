@@ -1,10 +1,35 @@
 import os
+import sys
 
 from config import (
     DEBUG, ANTHROPIC_API_KEY, LOCAL_LLM_MODEL_PATH,
-    LOCAL_LLM_N_CTX, LOCAL_LLM_MAX_TOKENS,
+    LOCAL_LLM_N_CTX, LOCAL_LLM_MAX_TOKENS, LOCAL_LLM_N_GPU_LAYERS,
 )
 from src.latency_tracker import track_latency
+
+# On Windows, llama_cpp's CUDA build (ggml-cuda.dll) dynamically links against
+# cublas64_*.dll/cudart64_*.dll, which live under CUDA_PATH\bin\x64 (CUDA 13+
+# moved them out of \bin). llama_cpp loads its DLLs via ctypes.CDLL(winmode=
+# ctypes.RTLD_GLOBAL), and passing an explicit winmode makes Windows skip
+# os.add_dll_directory()-registered paths entirely and fall back to the
+# classic DLL search order - which does honor PATH. So the fix is to prepend
+# to PATH, not add_dll_directory().
+if sys.platform == "win32":
+    import glob
+
+    cuda_paths = [os.environ["CUDA_PATH"]] if os.environ.get("CUDA_PATH") else []
+    cuda_paths += sorted(
+        glob.glob(r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v*"),
+        reverse=True,  # prefer the newest version if multiple are installed
+    )
+    dll_dirs = []
+    for cuda_path in cuda_paths:
+        for sub in ("bin\\x64", "bin"):
+            dll_dir = os.path.join(cuda_path, sub)
+            if os.path.isdir(dll_dir):
+                dll_dirs.append(dll_dir)
+    if dll_dirs:
+        os.environ["PATH"] = os.pathsep.join(dll_dirs) + os.pathsep + os.environ["PATH"]
 
 
 class GenerationService:
@@ -23,6 +48,7 @@ class GenerationService:
                 model_path=LOCAL_LLM_MODEL_PATH,
                 n_ctx=LOCAL_LLM_N_CTX,
                 n_threads=os.cpu_count(),
+                n_gpu_layers=LOCAL_LLM_N_GPU_LAYERS,
                 verbose=DEBUG,
             )
             if DEBUG:

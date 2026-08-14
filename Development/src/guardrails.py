@@ -1,6 +1,8 @@
 import math
 import re
 
+import torch
+
 from config import DEBUG
 from src.latency_tracker import track_latency
 
@@ -38,9 +40,10 @@ class Guardrails:
         self.cross_encoder = None
         try:
             from sentence_transformers import CrossEncoder
-            self.cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL, device="cpu")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL, device=device)
             if DEBUG:
-                print(f"[Guardrails] Loaded cross-encoder: {CROSS_ENCODER_MODEL}")
+                print(f"[Guardrails] Loaded cross-encoder: {CROSS_ENCODER_MODEL} on {device}")
         except Exception as e:
             if DEBUG:
                 print(f"[Guardrails] Cross-encoder unavailable ({e}), falling back to word overlap")

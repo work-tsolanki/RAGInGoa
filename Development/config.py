@@ -27,3 +27,6 @@ LOCAL_LLM_MODEL_PATH = os.getenv(
 )
 LOCAL_LLM_N_CTX = 4096
 LOCAL_LLM_MAX_TOKENS = 200
+# -1 = offload all layers to GPU. Ignored (falls back to CPU) if llama-cpp-python
+# wasn't built with CUDA support.
+LOCAL_LLM_N_GPU_LAYERS = int(os.getenv("LOCAL_LLM_N_GPU_LAYERS", "-1"))
