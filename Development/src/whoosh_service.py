@@ -2,9 +2,32 @@ import os
 import json
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, ID, STORED
-from whoosh.qparser import QueryParser
+from whoosh.qparser import QueryParser, OrGroup
 from config import DEBUG
 from src.latency_tracker import track_latency
+
+# English question/auxiliary words carry no topical signal but aren't in
+# Whoosh's small default stoplist (e.g. "what" isn't). With OrGroup these
+# words match huge numbers of unrelated passages (anything else phrased as
+# "What is X?") and can outrank the actually relevant document. Stripped
+# from the query only - the index itself is untouched, so no reindex needed.
+_QUERY_STOPWORDS = {
+    "what", "who", "how", "where", "when", "which", "why", "whom", "whose",
+    "is", "are", "was", "were", "do", "does", "did", "the", "a", "an",
+    "of", "in", "on", "at", "to", "for",
+}
+# Includes Whoosh/Lucene query-syntax special characters (?, *, ~, ^, :,
+# etc.) - left in place, a trailing "?" on a question turns that word into
+# a single-character wildcard query instead of a plain term match.
+_PUNCT = ".,?!;:\"'()[]{}*~^+-&|\\/"
+
+
+def _strip_query_stopwords(text: str) -> str:
+    words = [w.strip(_PUNCT) for w in text.split()]
+    words = [w for w in words if w and w.lower() not in _QUERY_STOPWORDS]
+    stripped = " ".join(words)
+    return stripped or text
+
 
 class WhooshService:
     """BM25 search using Whoosh."""
@@ -64,7 +87,13 @@ class WhooshService:
 
         try:
             with self.ix.searcher() as searcher:
-                query_obj = QueryParser("content", self.ix.schema).parse(query_text)
+                # OrGroup: match any term and rank by BM25 relevance, not the
+                # default AND (every term must co-occur in one passage,
+                # which almost never happens for natural-language questions
+                # and was silently zeroing out BM25's entire contribution).
+                query_obj = QueryParser("content", self.ix.schema, group=OrGroup).parse(
+                    _strip_query_stopwords(query_text)
+                )
                 hits = searcher.search(query_obj, limit=top_k)
 
                 for hit in hits:
