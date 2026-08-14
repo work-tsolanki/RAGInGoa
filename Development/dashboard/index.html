@@ -39,16 +39,11 @@
   .status-dot.connected { background: var(--good); }
   #conn-label { font-size: 12px; color: var(--text-dim); }
   .spacer { flex: 1; }
-  #api-key-box { display: flex; gap: 6px; align-items: center; }
-  #api-key-box input {
-    background: var(--panel-alt); border: 1px solid var(--border); color: var(--text);
-    padding: 5px 8px; border-radius: 6px; font-size: 12px; width: 220px; font-family: var(--mono);
-  }
-  #api-key-box button, #query-form button {
+  #query-form button {
     background: var(--accent); color: white; border: none; border-radius: 6px;
     padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600;
   }
-  #api-key-box button:hover, #query-form button:hover { filter: brightness(1.1); }
+  #query-form button:hover { filter: brightness(1.1); }
 
   main {
     flex: 1; display: grid; grid-template-columns: 1fr 1fr;
@@ -137,10 +132,6 @@
     <span class="status-dot" id="status-dot"></span>
     <span id="conn-label">disconnected</span>
     <div class="spacer"></div>
-    <div id="api-key-box">
-      <input id="api-key-input" type="password" placeholder="X-API-Key (RAG_API_KEY)" />
-      <button id="api-key-save">Connect</button>
-    </div>
   </header>
 
   <main>
@@ -183,22 +174,29 @@
 </div>
 
 <script>
+  // Replaced server-side (see /dashboard route in main_app.py) with the
+  // current RAG_API_KEY. Never hardcode a real key in this file - it's
+  // committed to source control.
+  window.__RAG_API_KEY__ = "__RAG_API_KEY_INJECTED__";
+</script>
+<script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const logEl = $("log");
   const statusDot = $("status-dot");
   const connLabel = $("conn-label");
-  const apiKeyInput = $("api-key-input");
-  const apiKeySave = $("api-key-save");
   const queryForm = $("query-form");
   const queryInput = $("query-input");
 
   let ws = null;
   let pendingRequestActive = false;
 
-  // API key is stored only in this browser's localStorage, never in source.
-  const savedKey = localStorage.getItem("rag_api_key") || "";
-  apiKeyInput.value = savedKey;
+  // Injected server-side at request time (see /dashboard in main_app.py).
+  // The dashboard is served by the same process that holds RAG_API_KEY and
+  // is only reachable by whoever can already reach the API - injecting it
+  // here doesn't cross a new trust boundary. It's never typed, and never
+  // written to localStorage/cookies/anywhere the browser persists it.
+  const apiKey = window.__RAG_API_KEY__ || "";
 
   function wsUrl() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -225,8 +223,6 @@
   }
 
   function connect() {
-    const key = apiKeyInput.value.trim();
-    localStorage.setItem("rag_api_key", key);
     if (ws) { try { ws.close(); } catch (e) {} }
 
     ws = new WebSocket(wsUrl());
@@ -236,7 +232,7 @@
     ws.onopen = () => {
       // Auth happens over the first message, not the URL - a query-string
       // api_key would land in server access logs and browser history.
-      ws.send(JSON.stringify({ type: "auth", api_key: key }));
+      ws.send(JSON.stringify({ type: "auth", api_key: apiKey }));
     };
     ws.onclose = (ev) => {
       setConnected(false);
@@ -360,11 +356,7 @@
     ws.send(JSON.stringify({ query_text: text }));
   });
 
-  apiKeySave.addEventListener("click", connect);
-
-  // Auto-connect on load if a key was previously saved.
-  if (savedKey) connect();
-  else setConnected(false);
+  connect();
 })();
 </script>
 </body>

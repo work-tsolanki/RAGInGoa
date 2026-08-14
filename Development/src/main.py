@@ -6,16 +6,17 @@ This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guard
 """
 
 import asyncio
+import json
 import secrets
 import time
+from pathlib import Path
 from typing import Optional, List
 from fastapi import (
     FastAPI, UploadFile, File, HTTPException, Header, Depends,
     WebSocket, WebSocketDisconnect,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import sys
@@ -56,7 +57,29 @@ app.add_middleware(
 )
 
 
-app.mount("/dashboard", StaticFiles(directory="dashboard", html=True), name="dashboard")
+DASHBOARD_HTML_PATH = Path(__file__).parent / "dashboard" / "index.html"
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/dashboard/", response_class=HTMLResponse)
+async def dashboard():
+    """
+    Serves the local dashboard with the server's own RAG_API_KEY injected at
+    request time, so it never has to be typed or stored in the browser
+    (localStorage, cookies, etc). Deliberately unauthenticated - but that's
+    only safe because uvicorn.run() below binds to 127.0.0.1 only. On any
+    host reachable off-machine, this route would hand the key to anyone
+    who asks; it would need to gate on verify_api_key (accepting the key via
+    a query param for that one bootstrap request) before being exposed like
+    that again.
+    """
+    html = DASHBOARD_HTML_PATH.read_text(encoding="utf-8")
+    # Escaped so a key containing "</script>" (not possible with the current
+    # generated key format, but not guaranteed) can't break out of the
+    # injected <script> block.
+    safe_key = json.dumps(RAG_API_KEY or "")[1:-1].replace("</", "<\\/")
+    html = html.replace("__RAG_API_KEY_INJECTED__", safe_key)
+    return HTMLResponse(html)
 
 
 if not RAG_API_KEY:
@@ -449,7 +472,11 @@ if __name__ == "__main__":
     
     uvicorn.run(
         app,
-        host="0.0.0.0",
+        # Loopback-only: /dashboard hands the RAG_API_KEY to whoever loads
+        # it, unauthenticated, so it must not be reachable off this machine.
+        # This is the local-only deployment target - if remote/LAN access is
+        # ever needed again, /dashboard has to gate on verify_api_key first.
+        host="127.0.0.1",
         port=8000,
         reload=DEBUG,
         log_level=LOG_LEVEL.lower()
