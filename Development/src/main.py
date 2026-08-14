@@ -5,12 +5,17 @@ File: src/main.py
 This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guardrails
 """
 
+import asyncio
 import secrets
 import time
 from typing import Optional, List
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Depends
+from fastapi import (
+    FastAPI, UploadFile, File, HTTPException, Header, Depends,
+    WebSocket, WebSocketDisconnect, Query,
+)
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import sys
@@ -49,6 +54,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.mount("/dashboard", StaticFiles(directory="dashboard", html=True), name="dashboard")
 
 
 if not RAG_API_KEY:
@@ -259,6 +267,112 @@ async def query_endpoint(request: QueryRequest):
         if DEBUG:
             print(f"✗ Query failed: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.websocket("/ws/query")
+async def ws_query_endpoint(websocket: WebSocket, api_key: Optional[str] = Query(default=None)):
+    """
+    Streaming version of /query for the local dashboard: pushes one JSON event
+    per pipeline stage (start/done + timing) instead of waiting for the full
+    response, so the UI can show live progress.
+
+    Browsers' native WebSocket API can't set custom headers, so auth is via
+    an `api_key` query param instead of X-API-Key.
+    """
+    if RAG_API_KEY and not secrets.compare_digest(api_key or "", RAG_API_KEY):
+        await websocket.close(code=4401, reason="Invalid or missing API key")
+        return
+
+    await websocket.accept()
+    try:
+        while True:
+            request = await websocket.receive_json()
+            query_text = (request.get("query_text") or "").strip()
+            top_k = request.get("top_k") or TOP_K_FINAL
+
+            if not query_text:
+                await websocket.send_json({"stage": "error", "message": "Query cannot be empty"})
+                continue
+
+            pipeline_start = time.time()
+            latency_breakdown = {}
+
+            try:
+                await websocket.send_json({"stage": "embedding", "status": "start"})
+                start = time.time()
+                query_embedding = await asyncio.to_thread(embedding_service.embed_query, query_text)
+                latency_breakdown["embedding"] = (time.time() - start) * 1000
+                await websocket.send_json({
+                    "stage": "embedding", "status": "done",
+                    "latency_ms": round(latency_breakdown["embedding"], 1),
+                })
+
+                await websocket.send_json({"stage": "retrieval", "status": "start"})
+                start = time.time()
+                dense_results = await asyncio.to_thread(chroma_service.query, query_embedding.tolist(), top_k=10)
+                bm25_results = await asyncio.to_thread(whoosh_service.query, query_text, top_k=10)
+                latency_breakdown["retrieval"] = (time.time() - start) * 1000
+                await websocket.send_json({
+                    "stage": "retrieval", "status": "done",
+                    "latency_ms": round(latency_breakdown["retrieval"], 1),
+                    "dense_count": len(dense_results), "bm25_count": len(bm25_results),
+                })
+
+                start = time.time()
+                retrieved_docs = merge_and_rank(dense_results, bm25_results, top_k=top_k)
+                latency_breakdown["merge"] = (time.time() - start) * 1000
+                await websocket.send_json({
+                    "stage": "merge", "status": "done",
+                    "latency_ms": round(latency_breakdown["merge"], 1),
+                    "documents": [
+                        {"doc_id": doc["doc_id"], "content": doc["content"][:200], "score": float(doc["final_score"])}
+                        for doc in retrieved_docs
+                    ],
+                })
+
+                context_docs = [doc["content"] for doc in retrieved_docs]
+                await websocket.send_json({"stage": "generation", "status": "start"})
+                start = time.time()
+                answer = await asyncio.to_thread(generation_service.generate, query_text, context_docs)
+                latency_breakdown["generation"] = (time.time() - start) * 1000
+                await websocket.send_json({
+                    "stage": "generation", "status": "done",
+                    "latency_ms": round(latency_breakdown["generation"], 1),
+                    "answer": answer,
+                })
+
+                await websocket.send_json({"stage": "grounding", "status": "start"})
+                start = time.time()
+                grounding_score = await asyncio.to_thread(guardrails.check_grounding, answer, context_docs)
+                latency_breakdown["grounding"] = (time.time() - start) * 1000
+                await websocket.send_json({
+                    "stage": "grounding", "status": "done",
+                    "latency_ms": round(latency_breakdown["grounding"], 1),
+                    "score": grounding_score,
+                })
+
+                if not guardrails.validate_answer(answer):
+                    answer = "I could not find a clear answer to your question. Please try rephrasing."
+                    grounding_score = 0.5
+
+                latency_breakdown["total"] = (time.time() - pipeline_start) * 1000
+                await websocket.send_json({
+                    "stage": "final",
+                    "query": query_text,
+                    "answer": answer,
+                    "confidence": float(grounding_score),
+                    "retrieved_documents": [
+                        {"doc_id": doc["doc_id"], "content": doc["content"][:200], "score": float(doc["final_score"])}
+                        for doc in retrieved_docs
+                    ],
+                    "latency_breakdown": {k: round(v, 1) for k, v in latency_breakdown.items()},
+                })
+            except Exception as e:
+                if DEBUG:
+                    print(f"[ws_query] Pipeline error: {e}")
+                await websocket.send_json({"stage": "error", "message": "Internal server error"})
+    except WebSocketDisconnect:
+        pass
+
 
 @app.post("/query_audio", dependencies=[Depends(verify_api_key)])
 async def query_audio_endpoint(
