@@ -200,10 +200,9 @@
   const savedKey = localStorage.getItem("rag_api_key") || "";
   apiKeyInput.value = savedKey;
 
-  function wsUrl(apiKey) {
+  function wsUrl() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    const key = apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : "";
-    return `${proto}://${location.host}/ws/query${key}`;
+    return `${proto}://${location.host}/ws/query`;
   }
 
   function setConnected(isConnected) {
@@ -230,13 +229,14 @@
     localStorage.setItem("rag_api_key", key);
     if (ws) { try { ws.close(); } catch (e) {} }
 
-    ws = new WebSocket(wsUrl(key));
+    ws = new WebSocket(wsUrl());
     setConnected(false);
     connLabel.textContent = "connecting…";
 
     ws.onopen = () => {
-      setConnected(true);
-      logLine("badge-done", "conn", "WebSocket connected");
+      // Auth happens over the first message, not the URL - a query-string
+      // api_key would land in server access logs and browser history.
+      ws.send(JSON.stringify({ type: "auth", api_key: key }));
     };
     ws.onclose = (ev) => {
       setConnected(false);
@@ -249,6 +249,11 @@
     ws.onmessage = (ev) => {
       let msg;
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      if (msg.stage === "auth" && msg.status === "ok") {
+        setConnected(true);
+        logLine("badge-done", "conn", "WebSocket connected & authenticated");
+        return;
+      }
       handleEvent(msg);
     };
   }

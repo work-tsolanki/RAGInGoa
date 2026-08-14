@@ -11,7 +11,7 @@ import time
 from typing import Optional, List
 from fastapi import (
     FastAPI, UploadFile, File, HTTPException, Header, Depends,
-    WebSocket, WebSocketDisconnect, Query,
+    WebSocket, WebSocketDisconnect,
 )
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -269,20 +269,33 @@ async def query_endpoint(request: QueryRequest):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.websocket("/ws/query")
-async def ws_query_endpoint(websocket: WebSocket, api_key: Optional[str] = Query(default=None)):
+async def ws_query_endpoint(websocket: WebSocket):
     """
     Streaming version of /query for the local dashboard: pushes one JSON event
     per pipeline stage (start/done + timing) instead of waiting for the full
     response, so the UI can show live progress.
 
-    Browsers' native WebSocket API can't set custom headers, so auth is via
-    an `api_key` query param instead of X-API-Key.
+    Browsers' native WebSocket API can't set custom headers, so auth happens
+    after the handshake: the client's first message must be
+    {"type": "auth", "api_key": ...}. A query-string api_key was considered
+    and rejected - it would land in uvicorn's access log and browser history
+    in cleartext.
     """
-    if RAG_API_KEY and not secrets.compare_digest(api_key or "", RAG_API_KEY):
-        await websocket.close(code=4401, reason="Invalid or missing API key")
-        return
-
     await websocket.accept()
+
+    if RAG_API_KEY:
+        try:
+            auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10)
+        except Exception:
+            await websocket.close(code=4401, reason="Auth message required")
+            return
+        submitted_key = auth_msg.get("api_key") if isinstance(auth_msg, dict) else None
+        if not secrets.compare_digest(submitted_key or "", RAG_API_KEY):
+            await websocket.close(code=4401, reason="Invalid API key")
+            return
+
+    await websocket.send_json({"stage": "auth", "status": "ok"})
+
     try:
         while True:
             request = await websocket.receive_json()
