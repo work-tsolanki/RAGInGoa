@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, '.')
 
 from src.embedding_service import EmbeddingService
-from src.whoosh_service import WhooshService
+from src.bm25s_service import Bm25sService
 from src.chroma_service import ChromaService
 from src.retrieval import merge_and_rank
 
@@ -19,7 +19,7 @@ def setup():
         chunks = json.load(f)
 
     embedding_service = EmbeddingService()
-    whoosh_service = WhooshService(chunks=chunks)
+    bm25_service = Bm25sService(chunks=chunks, index_dir="bm25s_index_pytest")
     chroma_service = ChromaService(collection_name="hhgoa_rag_pytest")
 
     embeddings_to_upsert = []
@@ -38,7 +38,7 @@ def setup():
     return {
         "chunks": chunks,
         "embedding": embedding_service,
-        "whoosh": whoosh_service,
+        "bm25s": bm25_service,
         "chroma": chroma_service
     }
 
@@ -50,10 +50,10 @@ def test_embedding(setup):
     assert len(embedding) == 384
 
 
-def test_whoosh_retrieval(setup):
-    """Test Whoosh BM25 retrieval."""
-    whoosh_service = setup["whoosh"]
-    results = whoosh_service.query("Aadhaar", top_k=5)
+def test_bm25s_retrieval(setup):
+    """Test bm25s BM25 retrieval."""
+    bm25_service = setup["bm25s"]
+    results = bm25_service.query("Aadhaar", top_k=5)
     assert len(results) > 0
     assert "doc_id" in results[0]
     assert "score" in results[0]
@@ -89,7 +89,7 @@ def test_merge_results(setup):
 def test_full_pipeline(setup):
     """Test full retrieval pipeline."""
     embedding_service = setup["embedding"]
-    whoosh_service = setup["whoosh"]
+    bm25_service = setup["bm25s"]
     chroma_service = setup["chroma"]
 
     query = "How to apply for Aadhaar?"
@@ -99,7 +99,7 @@ def test_full_pipeline(setup):
     query_emb = embedding_service.embed_query(query)
 
     dense_results = chroma_service.query(query_emb.tolist(), top_k=10)
-    bm25_results = whoosh_service.query(query, top_k=10)
+    bm25_results = bm25_service.query(query, top_k=10)
 
     merged = merge_and_rank(dense_results, bm25_results, top_k=5)
 

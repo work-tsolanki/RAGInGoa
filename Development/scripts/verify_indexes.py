@@ -3,11 +3,11 @@ sys.path.insert(0, '.')
 
 from src.embedding_service import EmbeddingService
 from src.chroma_service import ChromaService
-from src.whoosh_service import WhooshService
+from src.bm25s_service import Bm25sService
 
 embedding_service = EmbeddingService()
 chroma_service = ChromaService(collection_name="hhgoa_rag_full")
-whoosh_service = WhooshService(index_dir="whoosh_index_full")
+bm25_service = Bm25sService(index_dir="bm25s_index_full")
 
 test_queries = [
     "What is a corporation?",
@@ -25,7 +25,7 @@ for query in test_queries:
     for r in dense_results[:2]:
         print(f"    - {r['doc_id']} [{r['metadata'].get('language')}] score={r['score']:.3f}: {r['content'][:80]}")
 
-    bm25_results = whoosh_service.query(query, top_k=3)
+    bm25_results = bm25_service.query(query, top_k=3)
     print(f"  BM25: {len(bm25_results)} results")
     for r in bm25_results[:2]:
         print(f"    - {r['doc_id']} [{r.get('language')}] score={r['score']:.1f}: {r['content'][:80]}")

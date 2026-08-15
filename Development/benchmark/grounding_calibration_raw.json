@@ -1,0 +1,268 @@
+[
+  {
+    "query": "How to apply for a passport",
+    "answer": "Where you apply depends on when you need your passport. See Where to Apply for more information.",
+    "grounding_score": 0.9992,
+    "top_context": "Where you apply depends on when you need your passport. See Where to Apply for more information.",
+    "label": true
+  },
+  {
+    "query": "What is a corporation?",
+    "answer": "A corporation is an association of individuals, created by law or under authority of law, having a continuous existence independent of the existences of its members, and powers and liabilities distinct from those of its members.",
+    "grounding_score": 1.0,
+    "top_context": "Definition Pertaining to corporations. Corporations are the most common form of business organization, and one which is chartered by a state and given many legal rights as an entity separate from its ",
+    "label": true
+  },
+  {
+    "query": "income tax filing deadline",
+    "answer": "You will have 3.5 months after the last day of your tax year to file your return, your extension request, or your exemption request.",
+    "grounding_score": 1.0,
+    "top_context": "Step 3. Submit Application. Select your entity and fill out the online TaxID Application to obtain your new IRS TaxID Number in 3 business days to 4 weeks depending on your state. Our agents will revi",
+    "label": true
+  },
+  {
+    "query": "What are voter ID requirements",
+    "answer": "The answer is not in the given context.",
+    "grounding_score": 0.0019,
+    "top_context": "24 AAII Journal. Among the most complex and confusing rules are those. concerning distributions and beneficiaries—and they. involve irrevocable elections at age 70½.",
+    "label": false
+  },
+  {
+    "query": "How does GST registration work",
+    "answer": "The context does not provide information on how GST registration works. It only mentions GST as a tax that businesses incur while acquiring goods and services, and that it becomes an expense to the business.",
+    "grounding_score": 0.0567,
+    "top_context": "Businesses can incur GST while acquiring such goods and service but no credit is avaialble in respect of the tax, hence the GST incurred becomes an expense to the business. The expenses are bloked bas",
+    "label": false
+  },
+  {
+    "query": "What is Aadhaar?",
+    "answer": "The answer isn't in the context.",
+    "grounding_score": 0.0224,
+    "top_context": "یو ایس اے اے کا مطلب یونائیٹڈ سروسز آٹوموبائل ایسوسی ایشن اور اس کے انشورنس، بینکنگ، سرمایہ کاری اور دیگر کمپنیاں۔ بینک ممبر ایف ڈی آئی سی۔ یو ایس اے اے انویسٹمنٹ مینجمنٹ کمپنی اور یو ایس اے اے فنانشل",
+    "label": false
+  },
+  {
+    "query": "How does compound interest work",
+    "answer": "Compound interest is the interest earned on both the principal amount and any accrued interest over time. The more often interest is compounded, the quicker you're earning interest on your interest, which is how your savings really start to grow.",
+    "grounding_score": 0.9841,
+    "top_context": "The more often interest is compounded, the quicker you're earning interest on your interest, which is how your savings really start to grow. Some money market accounts compound interest monthly, quart",
+    "label": true
+  },
+  {
+    "query": "What causes inflation",
+    "answer": "The context does not provide information on the causes of inflation. It only provides a brief introduction to inflation and mentions a few related topics, but does not discuss the underlying causes of inflation.",
+    "grounding_score": 0.0633,
+    "top_context": "The rate of inflation formula shown is not to be confused with the purchasing power of goods relative to income. An example, albeit an extreme example, would be an individual who recently discovers th",
+    "label": false
+  },
+  {
+    "query": "How to renew a driving license",
+    "answer": "To renew a driving license, you can do the following:\n\n1. Find a local OMV office branch.\n2. Bring your current driver's license (if lost, you cannot renew it).\n3. Show proof of insurance for your vehicle.\n4. Pass a vision screening test.\n\nAlternatively, you can renew online if you meet the conditions, which include having your renewal notice sent via mail.",
+    "grounding_score": 1.0,
+    "top_context": "You will need to do the following to renew in person: 1  Find a local omv office branch. 2  Bring your current drivers license. If you lost your license, then you cannot renew it. 3  Your vehicle must",
+    "label": true
+  },
+  {
+    "query": "What is a mutual fund",
+    "answer": "A mutual fund is not explicitly defined in the provided context. However, it can be inferred that a mutual fund is a type of investment vehicle, as it is mentioned in various sections discussing its characteristics and objectives.",
+    "grounding_score": 0.6524,
+    "top_context": "Types of Mutual Funds-- Understand the basic fund types and the risks they carry, from Fidelity Investments. History of Mutual Funds-- Complete with a list of stock market topics, from atozinvestments",
+    "label": false
+  },
+  {
+    "query": "How to file a police complaint",
+    "answer": "To file a police complaint, call crime stop at 602-262-6151 to file a police report or have an officer dispatched.",
+    "grounding_score": 1.0,
+    "top_context": "Click Here For A Printable Civil Filing and Appearance Fees List Q: What forms are required to file a complaint? A: The Complaint, Summons, and Civil Case Cover Sheet are required at the time of initi",
+    "label": true
+  },
+  {
+    "query": "What is the minimum wage",
+    "answer": "The minimum wages mentioned are:\n\n- $6.95 per day for agricultural work and $7.12 per day for nonagricultural work in an unspecified country.\n- $11.00 per hour in Massachusetts.\n- $7.25 per hour as the Federal Minimum Wage.\n- $8.05 per hour in Florida, effective January 1, 2016.\n- $5.03 per hour for tipped employees in Florida, in addition to tips.\n- $11.50 per hour in Washington, D.C.",
+    "grounding_score": 0.9992,
+    "top_context": "The law sets national minimum wages for agricultural and nonagricultural work. The daily minimum wage was $6.95 (52.91 quetzales) per day for agricultural work and $7.12 (54.15 quetzales) for nonagric",
+    "label": true
+  },
+  {
+    "query": "How to apply for a ration card",
+    "answer": "The context does not provide information on how to apply for a ration card.",
+    "grounding_score": 0.0002,
+    "top_context": "You must be 14 years old to get an IDNYC card. If you are age 21 or younger, but do not have a photo identification card, you can still apply for the IDNYC card, but you will need a caretaker with you",
+    "label": false
+  },
+  {
+    "query": "What is a notary public",
+    "answer": "A notary public is a person authorized to perform official duties, such as confirming the identity of a signer for notary services, and signing documents like notarized copies.",
+    "grounding_score": 0.9998,
+    "top_context": "4.1e Using Public Amenities. Public amenities are resources, conveniences, facilities or benefits continuously offered to the general public for their use and/or enjoyment, with or without charge (e.g",
+    "label": false
+  },
+  {
+    "query": "How does small claims court work",
+    "answer": "The provided context does not fully explain how small claims court works. It only provides information about paying a judgment in a small claims case, specifically mentioning the options available to the debtor after receiving a Notice of Entry of Judgment.",
+    "grounding_score": 0.1584,
+    "top_context": "The debtor can pay the judgment directly to the court A debtor in a small claims case can pay the judgment directly to the court, if he or she prefers. Often this is done so that the debtor can immedi",
+    "label": true
+  },
+  {
+    "query": "What is a power of attorney",
+    "answer": "A power of attorney is one of the most important estate planning documents you can have. It allows you to appoint someone to manage your finances and make decisions on your behalf if you become unable to do so yourself.",
+    "grounding_score": 0.9999,
+    "top_context": "Q: How much does a power of attorney cost? A: Getting a durable power of attorney for finances, sometimes referred to by the initials, DPOA can be at no charge. Most states have the form available onl",
+    "label": true
+  },
+  {
+    "query": "How to check credit score",
+    "answer": "To check your credit score, you can refer to your credit report, which is typically sourced from credit bureaus. You can also use FICO Scores, which are the credit scores most lenders use to determine your credit risk.",
+    "grounding_score": 0.9944,
+    "top_context": "Credit score. A credit score is a numerical expression based on a level analysis of a person's credit files, to represent the creditworthiness of an individual. A credit score is primarily based on a ",
+    "label": true
+  },
+  {
+    "query": "What is a fixed deposit",
+    "answer": "There is no mention of a \"fixed deposit\" in the provided context.",
+    "grounding_score": 0.0817,
+    "top_context": "Definition of deposit. 1  1 : the state of being deposited. 2  2 : something placed for safekeeping: such asa : money deposited in a bank making a deposit or a withdrawal a deposit of $3,000b : money ",
+    "label": false
+  },
+  {
+    "query": "How to register a birth certificate",
+    "answer": "You can complete an application for a certified copy of a birth certificate at the Vital Records Central Office.",
+    "grounding_score": 1.0,
+    "top_context": "You may complete an application for a certified copy of a birth certificate, bring your photo identification and correct fees to the Vital Records Central Office. Walk-in services only accept cash, ch",
+    "label": true
+  },
+  {
+    "query": "What is capital gains tax",
+    "answer": "Capital gains tax is the tax rate at which net capital gains are taxed. It is a (usually) more favorable rate than ordinary income, with a maximum of 15 percent (5 percent for those whose income tax rate is either 10 or 15 percent).",
+    "grounding_score": 0.9998,
+    "top_context": "However, the part of the capital gain which is the same amount as the net capital gain is taxed only at the capital gains tax rate, a maximum of 15 percent (5 percent for those whose income tax rate i",
+    "label": true
+  },
+  {
+    "query": "What is an S-corporation",
+    "answer": "An S corporation is a C corporation with an S-Corporation tax election, telling the federal government that it would like to be taxed as a partnership rather than as a corporation.",
+    "grounding_score": 1.0,
+    "top_context": "As a corporation, an S corporation is created through filing Articles of Incorporation with the Secretary of State or similar government body. It issues stock and is governed as a corporation. The own",
+    "label": true
+  },
+  {
+    "query": "How to start a corporation",
+    "answer": "The answer is not in the provided context.",
+    "grounding_score": 0.004,
+    "top_context": "Difference Between a C Corporation and S Corporation. When you start a company, one of the key considerations you will have to make is what type of business entity to form. There are so many options: ",
+    "label": false
+  },
+  {
+    "query": "income tax refund status",
+    "answer": "You can check your refund status online or call the Tax Commission to find your refund check number and issue date.",
+    "grounding_score": 1.0,
+    "top_context": "To have your refund reissued: 1  Check your refund status online or call the Tax Commission to find your refund check number and issue date.  After at least 10 days have passed since the issue date, c",
+    "label": true
+  },
+  {
+    "query": "income tax slab rates",
+    "answer": "The income tax slab rates for the U.S. are as follows:\n\n- 10%\n- 15%\n- 25%\n- 28%\n- 33%\n- 35%\n- 39.6%\n\nFor Arizona, the income tax slab rates are:\n\n- 2.59%\n- (Higher brackets pay higher rates, but the exact rates are not specified in the given context.)",
+    "grounding_score": 0.9992,
+    "top_context": "Taxpayers fall into one of seven brackets, depending on their taxable income: 10%, 15%, 25%, 28%, 33%, 35% or 39.6%. Because the U.S. tax system is a progressive one, as income rises, increasingly hig",
+    "label": true
+  },
+  {
+    "query": "how to update voter id address",
+    "answer": "Unfortunately, the context does not provide information on how to update a voter ID address. However, it does mention CDL Requirements for Missouri Residents, which state that if you change your address, you must register the change within 30 days.",
+    "grounding_score": 0.0285,
+    "top_context": "Sign up Login.  1 Experts nearly all recommend Vote Smart..  2 Vote Smart is a bright light in an often desultory civic culture..  3 We think so highly of Vote Smart that we are distributing their mat",
+    "label": false
+  },
+  {
+    "query": "gst filing deadline",
+    "answer": "The answer isn't in the given context.",
+    "grounding_score": 0.0024,
+    "top_context": "T4 and T5 Slip Deadline is February 28 By Johanus | February 18, 2013 - 12:15 | February 18, 2013 Business Tips, Corporate Tax With the February 28 deadline approaching, there could be some worries ab",
+    "label": false
+  },
+  {
+    "query": "gst registration fees",
+    "answer": "The GST registration fee is $5 per vehicle (plus GST), with a maximum of $12.",
+    "grounding_score": 0.9989,
+    "top_context": "Late Fees and Other Penalties for Late Registration Renewal. Generally, states charge late fees and impose other penalties when drivers fail to renew their registrations on time (or within the grace p",
+    "label": false
+  },
+  {
+    "query": "how to update aadhaar address",
+    "answer": "The context does not provide information on how to update an Aadhaar address.",
+    "grounding_score": 0.0037,
+    "top_context": "Please set an email address for your profile. Email. No email address was supplied by. To complete your registration on this site, please supply an address. Please confirm or modify the email address ",
+    "label": false
+  },
+  {
+    "query": "aadhaar card lost how to get duplicate",
+    "answer": "The provided context does not contain information about the aadhaar card.",
+    "grounding_score": 0.0008,
+    "top_context": "To renew your ID card, you will need to: 1  Visit a DMV office (make an Appointment(s) for faster service) 2  Complete a Driver License or Identification Card Application form (DL 44). An original DL ",
+    "label": false
+  },
+  {
+    "query": "how does simple interest work",
+    "answer": "Simple interest is mentioned in the context of Money Market Account Interest, where it is stated that the Annual Percentage Rate (APR) is the simple interest rate.",
+    "grounding_score": 0.9979,
+    "top_context": "An equity interest is an ownership interest in a business entity, from the concept of equity as ownership. Shareholders have equity interest; their purchase of shares of stock in the corporation gives",
+    "label": false
+  },
+  {
+    "query": "how to apply for a driving license",
+    "answer": "The provided context does not contain information on how to apply for a driving license.",
+    "grounding_score": 0.0021,
+    "top_context": "The classes above are also allowed by the age of the driver according to the class of the driving license. 1  The ages are accordingly issued to the different classes of the driver's choice: 2  17 yea",
+    "label": false
+  },
+  {
+    "query": "what is a fixed deposit vs mutual fund",
+    "answer": "A fixed deposit is a type of deposit account where a sum of money is deposited for a fixed period of time, usually with a fixed interest rate. On the other hand, a mutual fund is a type of investment vehicle that pools money from multiple investors to invest in a diversified portfolio of securities, aiming for long-term growth of capital.\n\nIn the context provided, a fixed deposit is not explicitly mentioned, but it can be inferred from the definition of a deposit. However, a mutual fund is mentioned as a type of investment vehicle with a primary objective of long-term growth of capital.",
+    "grounding_score": 0.9242,
+    "top_context": "Although the interest rate paid to a money market account may not be high relative to other investment options, both money market deposit accounts and money market mutual funds may provide more intere",
+    "label": false
+  },
+  {
+    "query": "how to check police complaint status",
+    "answer": "The context does not provide information on how to check the status of a police complaint.",
+    "grounding_score": 0.0004,
+    "top_context": "Florida laws require that a contractor be licensed to engage in the home improvement business. There are some exceptions to this law. (See FS§520.68) C. Check status of contractor. You should check on",
+    "label": false
+  },
+  {
+    "query": "what is overtime pay",
+    "answer": "Overtime pay refers to the extra compensation an employee receives for working more hours than their regular workweek, typically beyond 40 hours.",
+    "grounding_score": 0.915,
+    "top_context": "California overtime is based on an employee's normal hourly rate of pay. If the employee is not paid by the hour but receives an annual salary, for example, and is eligible to receive overtime payment",
+    "label": true
+  },
+  {
+    "query": "ration card eligibility criteria",
+    "answer": "The context provided doesn't mention \"ration card eligibility criteria.\" It appears to be unrelated to the given context.",
+    "grounding_score": 0.0067,
+    "top_context": "Click here to start the application process. 1  Eligibility pre-screener results do not provide a guarantee that a patient is eligible for assistance from Amgen Safety Net Foundation, only that a pati",
+    "label": false
+  },
+  {
+    "query": "what is the boiling point of water",
+    "answer": "The boiling point of water is 212 °F and 100 °C.",
+    "grounding_score": 0.9989,
+    "top_context": "The symbol for Fahrenheit is °F and it is measured in degrees. The difference between the freezing point and boiling point of water is 180 fahrenheit degress where the boiling point of water is 212 °F",
+    "label": true
+  },
+  {
+    "query": "how many players on a cricket team",
+    "answer": "According to the context, a cricket team has 11 players. However, this information is not explicitly stated in the provided text.",
+    "grounding_score": 0.0092,
+    "top_context": "Over the years, Dolbear’s formula has been adjusted for other species of crickets (ie. the field cricket and Katydid, or “bush cricket”). It’s also been simplified (you can attain the same temperature",
+    "label": false
+  },
+  {
+    "query": "what is the capital of France",
+    "answer": "The capital of France is Paris.",
+    "grounding_score": 0.8351,
+    "top_context": "In May 1682, Louis moved the capital of France to Versailles, 12 miles away of Paris. It was Louis XIV's motive to remove himself and his nobles from the political intrigues of Paris. It became a symb",
+    "label": true
+  }
+]

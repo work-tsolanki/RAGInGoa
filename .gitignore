@@ -14,9 +14,14 @@ env/
 # Generated indexes / data artifacts
 whoosh_index/
 whoosh_index_full/
+**/bm25s_index_full/
+**/bm25s_index_pytest/
 **/data/msmarco-xi/
 **/data/chroma_db/
 **/models/*.gguf
+
+# Logs
+*.log
 
 # IDE
 .vscode/

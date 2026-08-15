@@ -34,14 +34,17 @@ class ChromaService:
 
     @track_latency("chroma_query")
     def query(self, query_embedding: list, top_k: int = 10) -> list:
-        """Query vectors, returning results shaped like the old PineconeService."""
-        count = self.collection.count()
-        if count == 0:
-            return []
+        """Query vectors, returning results shaped like the old PineconeService.
 
+        Skips the collection.count() pre-check that used to guard n_results:
+        that call alone cost ~50ms per query (a full collection stat round
+        trip), dwarfing the ~2ms HNSW search it was guarding. Chroma already
+        handles n_results > actual size and empty collections by just
+        returning fewer/no hits, so the check was pure overhead.
+        """
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=min(top_k, count)
+            n_results=top_k
         )
 
         output = []

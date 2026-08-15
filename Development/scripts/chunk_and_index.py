@@ -1,9 +1,13 @@
 """
 Embed all chunks in data/msmarco-xi/chunks.jsonl and index them into Chroma
-(dense) + Whoosh (BM25) at full scale.
+(dense) at full scale.
 
 Runs in batches with periodic progress logging and checkpointing so it can
 be interrupted and resumed without redoing completed work.
+
+The sparse (BM25) side is built separately by build_bm25s_index.py, which
+reads directly from CHUNKS_PATH and doesn't need the embeddings this script
+produces.
 """
 
 import json
@@ -15,12 +19,10 @@ sys.path.insert(0, '.')
 
 from src.embedding_service import EmbeddingService
 from src.chroma_service import ChromaService
-from src.whoosh_service import WhooshService
 
 CHUNKS_PATH = "data/msmarco-xi/chunks.jsonl"
 PROGRESS_PATH = "data/msmarco-xi/index_progress.json"
 BATCH_SIZE = 64
-WHOOSH_INDEX_DIR = "whoosh_index_full"
 
 
 def load_progress():
@@ -90,22 +92,7 @@ def main():
 
     print(f"Dense indexing complete: {total} chunks in Chroma "
           f"({(time.time() - t0) / 60:.1f} min)", flush=True)
-
-    print("\nBuilding Whoosh BM25 index (full scale)...", flush=True)
-    t1 = time.time()
-    whoosh_chunks = [
-        {
-            "doc_id": c["chunk_id"],
-            "content": c["content"],
-            "language": c["language"],
-            "metadata": {"section": c.get("source", "")},
-        }
-        for c in chunks
-    ]
-    WhooshService(chunks=whoosh_chunks, index_dir=WHOOSH_INDEX_DIR)
-    print(f"Whoosh index complete ({(time.time() - t1) / 60:.1f} min)", flush=True)
-
-    print("\nAll indexing complete.", flush=True)
+    print("Run scripts/build_bm25s_index.py to (re)build the sparse index.", flush=True)
 
 
 if __name__ == "__main__":

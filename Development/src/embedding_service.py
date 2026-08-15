@@ -15,6 +15,12 @@ class EmbeddingService:
 
         try:
             self.model = SentenceTransformer(model_name, device=device)
+            # sentence-transformers 2.2.2 only *records* device= in __init__
+            # (self._target_device) - it doesn't move the model there until
+            # the first encode() call, which eats a ~900ms one-time CUDA
+            # transfer. Force it here so device placement isn't implicit
+            # behavior riding on a startup warm-up call remembering to run.
+            self.model.to(device)
             self.dimension = self.model.get_sentence_embedding_dimension()
 
             if DEBUG:

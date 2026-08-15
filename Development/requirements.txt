@@ -15,8 +15,11 @@ scipy==1.11.0                         # Scientific computing
 # ============================================================================
 # Retrieval & Search
 # ============================================================================
-whoosh==2.7.4                         # BM25 search indexing
+bm25s==0.3.10                         # BM25 search indexing (sparse matmul, memory-mapped)
+groq==1.6.0                           # Groq API (primary generation backend, OpenAI-compatible)
+cerebras_cloud_sdk==1.91.0            # Cerebras API (benchmarked alt generation backend, same Llama-3.1-8B as Groq)
 chromadb==1.5.9                       # Local, persistent vector DB (no API key needed)
+sarvamai==0.1.30                      # Sarvam AI SDK - realtime STT streaming (saaras:v3-realtime WS); batch STT still uses raw httpx
 
 # ============================================================================
 # Web Framework & APIs

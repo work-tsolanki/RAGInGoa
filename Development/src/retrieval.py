@@ -18,15 +18,34 @@ def normalize_scores(results: List[Dict], max_score: float = None) -> List[Dict]
         for r in results
     ]
 
+def _extract_language(result: Dict) -> str:
+    """Dense (Chroma) results carry language under metadata; sparse (bm25s)
+    results carry it top-level. Without this, merge_and_rank silently
+    dropped language for any doc that only matched on the sparse side."""
+    return result.get("language") or result.get("metadata", {}).get("language", "")
+
+
 @track_latency("merge_results")
 def merge_and_rank(
     dense_results: List[Dict],
     bm25_results: List[Dict],
     top_k: int = 5,
     dense_weight: float = 0.6,
-    bm25_weight: float = 0.4
+    bm25_weight: float = 0.4,
+    target_language: str = None,
 ) -> List[Dict]:
-    """Merge dense + BM25 results with weighted fusion."""
+    """Merge dense + BM25 results with weighted fusion.
+
+    target_language: if set, prefer docs in this language once ranked - the
+    corpus (MSMARCO-XI) stores the same fact translated into many Indian
+    languages as separate chunks, and multilingual embeddings correctly
+    rank all of them as equally relevant. Left unfiltered, a single-language
+    query can retrieve 4-5 different scripts for the same underlying fact,
+    which confuses the LLM into answering in an unpredictable language. This
+    keeps target_language matches first (still ranked by relevance among
+    themselves) and only falls back to other languages to fill out top_k -
+    never drops content solely because no same-language version exists.
+    """
 
     merged = {}
 
@@ -38,6 +57,7 @@ def merge_and_rank(
             "content": result.get("content", ""),
             "dense_score": result["score"],
             "bm25_score": 0.0,
+            "language": _extract_language(result),
             "metadata": result.get("metadata", {})
         }
 
@@ -48,12 +68,15 @@ def merge_and_rank(
             merged[doc_id]["bm25_score"] = result["score"]
             if not merged[doc_id]["content"]:
                 merged[doc_id]["content"] = result.get("content", "")
+            if not merged[doc_id]["language"]:
+                merged[doc_id]["language"] = _extract_language(result)
         else:
             merged[doc_id] = {
                 "doc_id": doc_id,
                 "content": result.get("content", ""),
                 "dense_score": 0.0,
                 "bm25_score": result["score"],
+                "language": _extract_language(result),
                 "metadata": result.get("metadata", {})
             }
 
@@ -63,11 +86,18 @@ def merge_and_rank(
             bm25_weight * merged[doc_id]["bm25_score"]
         )
 
-    ranked = sorted(
+    candidates = sorted(
         merged.values(),
         key=lambda x: x["final_score"],
         reverse=True
-    )[:top_k]
+    )
+
+    if target_language:
+        same_lang = [d for d in candidates if d["language"] == target_language]
+        other_lang = [d for d in candidates if d["language"] != target_language]
+        ranked = (same_lang + other_lang)[:top_k]
+    else:
+        ranked = candidates[:top_k]
 
     if DEBUG:
         print(f"[merge_and_rank] Merged {len(merged)} docs -> top-{len(ranked)}")

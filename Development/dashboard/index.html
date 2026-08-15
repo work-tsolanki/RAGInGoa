@@ -44,6 +44,19 @@
     padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600;
   }
   #query-form button:hover { filter: brightness(1.1); }
+  #mic-language {
+    background: var(--panel-alt); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 12px; cursor: pointer; flex: 0 0 auto;
+  }
+  #mic-btn {
+    background: var(--panel-alt); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600;
+    flex: 0 0 auto;
+  }
+  #mic-btn:hover { filter: brightness(1.15); }
+  #mic-btn.recording { background: var(--bad); color: white; border-color: var(--bad); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .7; } }
+  #mic-status { font-size: 12px; color: var(--text-dim); flex: 0 0 auto; align-self: center; }
 
   main {
     flex: 1; display: grid; grid-template-columns: 1fr 1fr;
@@ -97,6 +110,11 @@
     margin: 0 0 10px 0; font-weight: 700;
   }
   #answer-text { font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+  #answer-text.streaming::after {
+    content: "▍"; display: inline-block; color: var(--accent);
+    animation: blink 1s step-start infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
 
   .score-row { display: flex; align-items: center; gap: 12px; }
   .score-bar-track {
@@ -121,6 +139,7 @@
   .doc-content { font-size: 13px; color: var(--text); line-height: 1.4; }
 
   .empty-hint { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 </style>
@@ -144,6 +163,24 @@
       <form id="query-form">
         <input id="query-input" type="text" placeholder="Ask something in any supported language…" autocomplete="off" />
         <button type="submit">Ask</button>
+        <select id="mic-language" title="Spoken language for the recording">
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="gu">Gujarati</option>
+          <option value="mr">Marathi</option>
+          <option value="ta">Tamil</option>
+          <option value="te">Telugu</option>
+          <option value="kn">Kannada</option>
+          <option value="ml">Malayalam</option>
+          <option value="bn">Bengali</option>
+          <option value="pa">Punjabi</option>
+          <option value="or">Odia</option>
+          <option value="ur">Urdu</option>
+          <option value="ne">Nepali</option>
+          <option value="as">Assamese</option>
+        </select>
+        <button type="button" id="mic-btn">● Record</button>
+        <span id="mic-status"></span>
       </form>
       <div id="results">
         <div class="card" id="answer-card">
@@ -187,9 +224,13 @@
   const connLabel = $("conn-label");
   const queryForm = $("query-form");
   const queryInput = $("query-input");
+  const micBtn = $("mic-btn");
+  const micStatus = $("mic-status");
+  const micLanguage = $("mic-language");
 
   let ws = null;
   let pendingRequestActive = false;
+  let streamingAnswer = "";
 
   // Injected server-side at request time (see /dashboard in main_app.py).
   // The dashboard is served by the same process that holds RAG_API_KEY and
@@ -265,21 +306,41 @@
     if (stage === "error") {
       logLine("badge-error", "error", escapeHtml(msg.message));
       pendingRequestActive = false;
+      micStatus.textContent = "";
       return;
     }
 
     if (stage === "final") {
       logLine("badge-final", "final", `total <span class="dim">${msg.latency_breakdown.total}ms</span>`);
-      renderAnswer(msg.answer);
+      renderAnswer(msg.answer, false);
       renderConfidence(msg.confidence);
       renderLatency(msg.latency_breakdown);
       renderDocs(msg.retrieved_documents);
       pendingRequestActive = false;
+      micStatus.textContent = "";
+      return;
+    }
+
+    // Per-token deltas as the answer streams in - update the Answer card
+    // live but don't log each one, that would flood the pipeline log at
+    // one line per token for a 100+ token answer.
+    if (stage === "generation" && msg.status === "token") {
+      streamingAnswer += msg.delta;
+      renderAnswer(streamingAnswer, true);
+      return;
+    }
+
+    // Sarvam's own live partial transcript while recording - update the
+    // input box in real time but don't log each one (same flooding
+    // concern as generation tokens above).
+    if (stage === "stt" && msg.status === "partial") {
+      queryInput.value = msg.transcript;
       return;
     }
 
     // stage start/done events: embedding, retrieval, generation, grounding
     if (msg.status === "start") {
+      if (stage === "generation") streamingAnswer = "";
       logLine("badge-start", stage, "started…");
     } else if (msg.status === "done") {
       let extra = `<span class="dim">${msg.latency_ms}ms</span>`;
@@ -289,8 +350,17 @@
       if (stage === "grounding") {
         extra += `<span class="dim"> · score=${msg.score}</span>`;
       }
-      if (stage === "generation" && msg.answer) {
-        extra += `<span class="dim"> · "${escapeHtml(msg.answer.slice(0, 60))}${msg.answer.length > 60 ? "…" : ""}"</span>`;
+      if (stage === "generation") {
+        if (msg.backend) extra += `<span class="dim"> · backend=${escapeHtml(msg.backend)}</span>`;
+        if (msg.cache_hit) extra += `<span class="dim"> · cache hit</span>`;
+        else if (msg.first_token_ms != null) extra += `<span class="dim"> · first token ${msg.first_token_ms}ms</span>`;
+        if (msg.answer) {
+          extra += `<span class="dim"> · "${escapeHtml(msg.answer.slice(0, 60))}${msg.answer.length > 60 ? "…" : ""}"</span>`;
+        }
+      }
+      if (stage === "stt" && msg.transcript) {
+        extra += `<span class="dim"> · "${escapeHtml(msg.transcript)}"</span>`;
+        queryInput.value = msg.transcript;
       }
       logLine("badge-done", stage, extra);
       if (stage === "merge" && msg.documents) {
@@ -299,9 +369,11 @@
     }
   }
 
-  function renderAnswer(answer) {
-    $("answer-text").classList.remove("empty-hint");
-    $("answer-text").textContent = answer;
+  function renderAnswer(answer, streaming) {
+    const el = $("answer-text");
+    el.classList.remove("empty-hint");
+    el.classList.toggle("streaming", !!streaming);
+    el.textContent = answer;
   }
 
   function renderConfidence(score) {
@@ -316,7 +388,7 @@
     const rows = $("latency-rows");
     rows.innerHTML = "";
     const total = breakdown.total || 1;
-    const order = ["embedding", "retrieval", "merge", "generation", "grounding", "total"];
+    const order = ["stt", "embedding", "retrieval", "merge", "generation", "grounding", "total"];
     order.forEach((key) => {
       if (!(key in breakdown)) return;
       const val = breakdown[key];
@@ -355,6 +427,95 @@
     logLine("badge-start", "query", `“${escapeHtml(text)}”`);
     ws.send(JSON.stringify({ query_text: text }));
   });
+
+  // Real-time speech-to-text: audio is streamed to the server as raw 16kHz
+  // mono PCM chunks WHILE recording (not uploaded as one file after
+  // stopping), so Sarvam's saaras:v3-realtime model transcribes
+  // concurrently with speech. The "stt" stage "partial" events below are
+  // Sarvam's own live transcript (not a separate browser-side guess), so
+  // what you see appearing in the box IS what's actually being heard by
+  // the engine that will answer the question. See RealtimeSttSession /
+  // _relay_realtime_stt in the backend for the other half of this.
+  let audioCtx = null;
+  let micStream = null;
+  let micSourceNode = null;
+  let micProcessorNode = null;
+  let isRecording = false;
+
+  function setMicUI(recording, statusText) {
+    micBtn.classList.toggle("recording", recording);
+    micBtn.textContent = recording ? "■ Stop" : "● Record";
+    micStatus.textContent = statusText || "";
+    micLanguage.disabled = recording;
+  }
+
+  function float32ToPcm16Base64(float32Array) {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
+    for (let i = 0; i < float32Array.length; i++) {
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  async function toggleRecording() {
+    if (pendingRequestActive) return;
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      logLine("badge-error", "mic", `Microphone access denied: ${escapeHtml(e.message)}`);
+      return;
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioCtx({ sampleRate: 16000 });
+    micStream = stream;
+    micSourceNode = audioCtx.createMediaStreamSource(stream);
+    // ScriptProcessorNode is deprecated but needs no separate worklet
+    // module file to serve - fine for this scope. 4096 samples @ 16kHz =
+    // 256ms chunks, matching what was verified against the real Sarvam API.
+    micProcessorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+    micProcessorNode.onaudioprocess = (event) => {
+      if (!isRecording || !ws || ws.readyState !== WebSocket.OPEN) return;
+      const chunk = float32ToPcm16Base64(event.inputBuffer.getChannelData(0));
+      ws.send(JSON.stringify({ type: "audio_chunk", chunk }));
+    };
+    micSourceNode.connect(micProcessorNode);
+    // Silent output (we never write to outputBuffer) - connecting to
+    // destination is what makes onaudioprocess actually fire reliably.
+    micProcessorNode.connect(audioCtx.destination);
+
+    isRecording = true;
+    queryInput.value = "";
+    setMicUI(true, "recording…");
+    ws.send(JSON.stringify({ type: "audio_stream_start", language: micLanguage.value }));
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    if (micProcessorNode) { micProcessorNode.disconnect(); micProcessorNode.onaudioprocess = null; micProcessorNode = null; }
+    if (micSourceNode) { micSourceNode.disconnect(); micSourceNode = null; }
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    setMicUI(false, "transcribing…");
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      pendingRequestActive = true;
+      ws.send(JSON.stringify({ type: "audio_stream_end" }));
+    }
+  }
+
+  micBtn.addEventListener("click", toggleRecording);
 
   connect();
 })();

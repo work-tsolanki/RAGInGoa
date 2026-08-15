@@ -42,6 +42,10 @@ class Guardrails:
             from sentence_transformers import CrossEncoder
             device = "cuda" if torch.cuda.is_available() else "cpu"
             self.cross_encoder = CrossEncoder(CROSS_ENCODER_MODEL, device=device)
+            # Same lazy-device quirk as SentenceTransformer: __init__ only
+            # records _target_device, the actual .to(device) transfer
+            # happens on first predict() otherwise - see embedding_service.py.
+            self.cross_encoder.model.to(device)
             if DEBUG:
                 print(f"[Guardrails] Loaded cross-encoder: {CROSS_ENCODER_MODEL} on {device}")
         except Exception as e:
