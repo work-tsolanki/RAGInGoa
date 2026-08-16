@@ -1,424 +1,228 @@
 # System Architecture & Design
 
-This document explains the complete system design, data flow, and architectural decisions.
+This document describes what is actually implemented and deployed, not the
+original pre-implementation plan. Earlier drafts of this file described
+Pinecone, Whoosh, and a fixed local-Llama/Claude elapsed-time switch - none
+of that shipped. This version was rewritten against the real code and the
+live deployment (`https://ragingoa.fly.dev`) as of the Aug 2026 production
+hardening pass, per the spec-compliance audit's finding that this document
+had drifted from the implementation once already.
 
 ---
 
 ## 🏗️ High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Client (Browser/App)                      │
-│                  [Microphone] → Audio bytes                      │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ HTTP POST /query
-                           ↓
-┌──────────────────────────────────────────────────────────────────┐
-│                    FastAPI Application                            │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │               1. STT Service (Sarvam)                      │ │
-│  │  Audio → Transcript (English/Hindi/Tamil/etc.)            │ │
-│  │  Latency: 30-50ms                                         │ │
-│  └────────────┬─────────────────────────────────────────────┘ │
-│               │                                                  │
-│  ┌────────────▼─────────────────────────────────────────────┐ │
-│  │          2. Query Preprocessing                          │ │
-│  │  • Normalize text (lowercase, remove special chars)       │ │
-│  │  • Detect language                                       │ │
-│  │  Latency: 5ms                                            │ │
-│  └────────────┬─────────────────────────────────────────────┘ │
-│               │                                                  │
-│  ┌────────────▼──────────────────┐   ┌──────────────────────┐  │
-│  │ 3a. Dense Embedding            │   │ 3b. BM25 Search      │  │
-│  │ (AI4Bharat IndicBERT)          │   │ (Whoosh)             │  │
-│  │ Query → 384-dim vector         │   │ Query → top-k docs   │  │
-│  │ Latency: 15ms                  │   │ Latency: 20ms        │  │
-│  └────────────┬──────────────────┘   └──────────┬───────────┘  │
-│               │                                 │                │
-│  ┌────────────▼──────────────────┐   ┌──────────▼───────────┐  │
-│  │ 3c. Pinecone Vector Search     │   │ 3d. Whoosh Results   │  │
-│  │ embedding → top-k similar docs │   │ keyword matches      │  │
-│  │ Latency: 20ms                  │   │                      │  │
-│  └────────────┬──────────────────┘   └──────────┬───────────┘  │
-│               │                                 │                │
-│  ┌────────────▼─────────────────────────────────▼───────────┐  │
-│  │     4. Merge & Rank Results                             │  │
-│  │  • Union dense + BM25 results (dedup)                   │  │
-│  │  • Normalize scores (0-1 range)                         │  │
-│  │  • Weighted fusion: 60% dense + 40% BM25               │  │
-│  │  • Return top-5 merged results                          │  │
-│  │  Latency: 5ms                                           │  │
-│  └────────────┬─────────────────────────────────────────┘  │
-│               │                                              │
-│  ┌────────────▼──────────────────┐                         │
-│  │ 5. Choose LLM Generation Path │                         │
-│  │                                │                         │
-│  │  if <100ms elapsed:            │                         │
-│  │    → Use local Llama (fast)    │                         │
-│  │  else:                         │                         │
-│  │    → Use Claude API (quality)  │                         │
-│  └────────────┬──────────────────┘                         │
-│               │                                              │
-│  ┌────────────▼──────────────────┐                         │
-│  │ 6. Generate Answer             │                         │
-│  │ • Create RAG prompt            │                         │
-│  │ • Llama: 100-150ms             │                         │
-│  │ • Claude: 100-300ms            │                         │
-│  └────────────┬──────────────────┘                         │
-│               │                                              │
-│  ┌────────────▼──────────────────────────────────────────┐  │
-│  │        7. Guardrails & Grounding Check               │  │
-│  │  • Is answer grounded in retrieved docs?            │  │
-│  │  • Cross-encoder scoring: answer vs retrieved       │  │
-│  │  • Extract citations from answer                    │  │
-│  │  • If not grounded & budget allows: refine          │  │
-│  │  Latency: 20ms                                      │  │
-│  └────────────┬──────────────────────────────────────────┘  │
-│               │                                              │
-│  ┌────────────▼──────────────────────────────────────────┐  │
-│  │    8. Format & Return Response                       │  │
-│  │  • Answer (text)                                     │  │
-│  │  • Retrieved chunks with scores                      │  │
-│  │  • Latency breakdown (P50/P70/P100)                  │  │
-│  └────────────┬──────────────────────────────────────────┘  │
-└───────────────┼──────────────────────────────────────────────┘
-                │ HTTP 200 JSON response
-                ↓
-         ┌──────────────────┐
-         │  Client receives │
-         │  Answer + Context│
-         └──────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                         Client (dashboard / API caller)                │
+│           Text query, or mic recording via the dashboard's WS UI       │
+└───────────────────────────┬─────────────────────────────────────────┬─┘
+        REST: POST /query, /demo/query, /query_audio   │   WS: /ws/query, /ws/demo
+        (X-API-Key header)                              │   (auth frame, or none on /ws/demo)
+                            │                            │
+                            ▼                            ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                          FastAPI app (main_app.py)                     │
+│                                                                          │
+│  0. Access gate                                                         │
+│     /query, /ws/query, /query_audio  -> X-API-Key / WS auth frame       │
+│     /demo/query, /ws/demo            -> per-IP rate limit instead       │
+│                                          (Fly-Client-IP, not spoofable  │
+│                                          X-Forwarded-For), same pipeline│
+│                                                                          │
+│  1. (WS voice path only) STT - Sarvam saaras:v3-realtime, streamed      │
+│     transcript as the recording happens; batch STT for one-shot audio  │
+│                                                                          │
+│  2. Unsafe-input check (regex, obvious-intent phrases) - reject before │
+│     spending an embedding call on it                                   │
+│                                                                          │
+│  3. Embed query - sentence-transformers/paraphrase-multilingual-       │
+│     MiniLM-L12-v2, 384-dim, shared across embedding/off-topic gate     │
+│                                                                          │
+│  4. Off-topic check - cosine similarity vs a calibrated reference-query │
+│     set (scripts/calibrate_off_topic_threshold.py); reject before      │
+│     spending a cache lookup or retrieval on it                         │
+│                                                                          │
+│  5. Semantic cache lookup (embedding similarity >= 0.92) - a hit skips  │
+│     retrieval AND generation entirely, not just generation             │
+│                                                                          │
+│  6. Parallel retrieval                                                 │
+│       Dense: Chroma (persistent, HNSW)     Sparse: bm25s (sparse matmul │
+│       858,768-doc collection, volume-        over a memory-mapped index,│
+│       mounted in production                  same 858,768-doc corpus)  │
+│                                                                          │
+│  7. Merge & rank (src/retrieval.py::merge_and_rank) - weighted fusion  │
+│     of dense + sparse scores, then dedupe_by_parent collapses a whole  │
+│     passage and its own sub-chunks down to whichever scored highest    │
+│                                                                          │
+│  8. Literal answer cache lookup (exact query + retrieved-doc-set key)  │
+│                                                                          │
+│  9. Generation - ordered fallback chain (config.GENERATION_BACKEND_    │
+│     ORDER): Groq (llama-3.1-8b-instant) -> local llama.cpp (dev only,  │
+│     see Decision 2) -> Claude (claude-3-haiku-20240307). Production    │
+│     overrides this to Groq -> Claude only (no GPU on Fly - see         │
+│     Decision 2 and Deployment below). temperature=0.1 on every backend.│
+│                                                                          │
+│ 10. Grounding check - multilingual cross-encoder (cross-encoder/       │
+│     mmarco-mMiniLMv2-L12-H384-v1) scores the generated answer against  │
+│     each retrieved passage; below ANSWER_CACHE_MIN_GROUNDING (0.7) the │
+│     returned answer is replaced with a language-aware hedge message -  │
+│     this gates what's actually returned, not just what gets cached     │
+│                                                                          │
+│ 11. Format & return - REST: single JSON response. WS: one JSON event   │
+│     per stage (embedding/retrieval/generation/grounding start+done)    │
+│     followed by a final event, so the dashboard shows live progress    │
+└───────────────────────────┬─────────────────────────────────────────┬─┘
+                    REST: JSON response                    WS: stream of stage events
+                            ▼                                          ▼
+                     Client receives                          Client receives live
+                     answer + retrieved docs                  progress + final answer
+                     + confidence + latency                   + confidence + latency
+                     breakdown                                 breakdown
 ```
 
 ---
 
-## 📊 Latency Breakdown (Target: <200ms)
+## 🔌 Real Service Modules
 
-| Component | Latency (ms) | % of Budget | Note |
-|-----------|-------------|------------|------|
-| STT (Sarvam) | 30-50 | 15-25% | Network call |
-| Query Preprocessing | 5 | 2% | Local |
-| Dense Embedding | 15 | 7% | GPU, AI4Bharat |
-| Pinecone Query | 20 | 10% | Network call |
-| BM25 Search | 20 | 10% | Local, Whoosh |
-| Merge & Rank | 5 | 2% | Local |
-| LLM Generation (Llama) | 100-120 | 50-60% | GPU, primary path |
-| Grounding Check | 20 | 10% | Local |
-| JSON Serialization | 5 | 2% | Local |
-| **Total** | **170-220** | **100%** | P50 target: <180ms |
-
-**Key observation**: LLM generation dominates latency. Using local Llama 7B is critical.
-
----
-
-## 🔌 Service Architecture
-
-### 1. **Embedding Service** (`src/embedding_service.py`)
-
-```python
-class EmbeddingService:
-    - load_model(model_name: str) → loads AI4Bharat IndicBERT
-    - embed_query(text: str) → 384-dim vector
-    - embed_documents(texts: List[str]) → batch embeddings
-    - get_dimension() → 384
-```
-
-**Latency Profile**:
-- Single query: 15ms
-- Batch (32 texts): 50ms for 32 texts = 1.56ms per text
-
-**Trade-offs**:
-- AI4Bharat: Good for Indian languages, medium quality
-- Alternative: OpenAI embeddings (better quality, higher latency)
+| Module | Role |
+|---|---|
+| `src/embedding_service.py` | Wraps the sentence-transformers embedding model. |
+| `src/chroma_service.py` | Dense retrieval - persistent Chroma collection (`hhgoa_rag_full`), path configurable via `CHROMA_PERSIST_DIR` (points at the mounted volume in production). |
+| `src/bm25s_service.py` | Sparse retrieval - `bm25s`, memory-mapped sparse-matmul index, path via `BM25S_INDEX_DIR`. Replaced Whoosh (see Decision 4) after Whoosh was found returning zero results on most natural-language queries. |
+| `src/retrieval.py` | `merge_and_rank` (weighted dense+sparse fusion) and `dedupe_by_parent` (collapses a passage and its own sub-chunks). |
+| `src/chunking/fixed_overlap.py`, `src/chunking/semantic.py` | The two additive sub-chunking strategies - see Decision 3. |
+| `src/generation_service.py` | `generate()` (REST, blocking) and `stream_generate()` (WS, token-by-token) over the same ordered backend fallback chain. Both record into the same `latency_tracker` "generation" bucket. |
+| `src/guardrails.py` | `check_grounding` (cross-encoder), `validate_answer` (refusal-phrase/empty-answer detection), `check_off_topic` / `check_unsafe` (the pre-retrieval gate - see below), plus the language-aware hedge/decline response builders. |
+| `src/answer_cache.py` | Literal (exact-match) answer cache, keyed on `(query, retrieved_doc_ids)`. |
+| `src/semantic_cache.py` | Fuzzy cache keyed on embedding similarity - catches reworded repeats the literal cache would miss. |
+| `src/rate_limiter.py` | In-memory per-IP sliding-window limiter, backing the `/demo/query` and `/ws/demo` access gate. |
+| `src/latency_tracker.py` | Records per-stage latency samples; backs `GET /metrics` (P50/P70/P100 per stage). |
+| `src/stt_service.py` | Sarvam `saaras:v3-realtime` for streamed mic input, plus a batch path for one-shot audio uploads. |
 
 ---
 
-### 2. **Vector DB Service** (`src/pinecone_service.py`)
+## 🛂 The off-topic / unsafe-input gate
 
-```python
-class PineconeService:
-    - init(api_key, index_name, dimension)
-    - upsert(vectors, metadata) → index documents
-    - query(query_vector, top_k=10) → retrieve similar docs
-    - delete_index() → cleanup
-```
+Added during production hardening after the spec audit flagged it as a
+named-but-missing requirement ("handling for off-topic queries, unsafe/
+inappropriate inputs"). Runs in `main_app.py`, before the semantic/literal
+cache lookup - no retrieval or generation cost is spent on a query that was
+never going to be answered.
 
-**How it works**:
-1. Query vector → Pinecone API (network call)
-2. Pinecone backend → HNSW/IVF search (fast, approximate)
-3. Return top-10 with scores (cosine similarity)
+- **Unsafe check** (`check_unsafe`): a small set of obvious-intent regex
+  patterns (self-harm, weapons, illegal-drug synthesis, CSAM). Pure text
+  match, no model call - runs first, before embedding.
+- **Off-topic check** (`check_off_topic`): the corpus (MSMARCO-XI) is
+  open-domain general-knowledge QA, not a narrow topic - there's no bounded
+  "list of in-scope subjects" to enumerate. Instead, the query's embedding
+  is compared (cosine similarity) against a fixed reference set of ~35
+  example queries spanning the corpus's actual observed breadth
+  (`_OFF_TOPIC_REFERENCE_QUERIES` in `src/guardrails.py`), including a few
+  Hindi/Gujarati anchors since the multilingual embedding space isn't
+  perfectly language-symmetric (a real, measured gap - the same phenomenon
+  behind the cross-lingual hedge-rate finding in the Aug 2026 benchmark).
+  `OFF_TOPIC_SIMILARITY_THRESHOLD = 0.499`, calibrated (not chosen by eye)
+  via `scripts/calibrate_off_topic_threshold.py` against this project's own
+  real benchmark queries (must stay above threshold) vs. deliberately
+  off-topic ones - creative writing, pure computation, casual chat, meta
+  questions about the assistant - which must stay below it.
 
-**Latency**: 20-30ms (network + search)
-
-**Cost**: ~$1-5/month for hobby tier
-
----
-
-### 3. **BM25 Search Service** (`src/whoosh_service.py`)
-
-```python
-class WhooshService:
-    - init(chunks: List[Dict]) → build Whoosh index
-    - query(query_text: str, top_k=10) → retrieve keyword matches
-    - delete_index() → cleanup
-```
-
-**How it works**:
-1. Tokenize query text
-2. Search indexed terms
-3. Return docs with BM25 scores
-
-**Latency**: 20-30ms (depends on index size)
-
-**Why Whoosh?**
-- Pure Python (no C dependencies)
-- Fast for small-medium datasets
-- Works offline (no API calls)
+Both checks apply identically on the authenticated (`/query`, `/ws/query`)
+and public demo (`/demo/query`, `/ws/demo`) paths.
 
 ---
 
-### 4. **Retrieval Pipeline** (`src/retrieval.py`)
+## 🌐 Access paths
 
-```python
-def retrieve(query_text: str, top_k_final: int = 5):
-    # Step 1: Embed query
-    query_embedding = embedding_service.embed_query(query_text)
-    
-    # Step 2: Parallel retrieval (async)
-    dense_results = await pinecone_service.query(query_embedding)
-    bm25_results = whoosh_service.query(query_text)
-    
-    # Step 3: Merge & rank
-    merged = merge_and_rank(dense_results, bm25_results)
-    
-    # Step 4: Return top-k
-    return merged[:top_k_final]
+| Path | Auth | Notes |
+|---|---|---|
+| `POST /query` | `X-API-Key` header | Full pipeline, single JSON response. |
+| `WS /ws/query` | First message `{"type":"auth","api_key":...}` | Streaming stage events; also carries the voice flow (`audio_stream_start`/`audio_chunk`/`audio_stream_end`, or one-shot `audio_query`). |
+| `POST /demo/query` | None - rate-limited | Identical pipeline to `/query`, gated by `verify_demo_rate_limit` instead of a key. |
+| `WS /ws/demo` | None - rate-limited | Identical to `/ws/query` (text and voice both work), gated per-query-submission by the same rate limiter. This is what the public dashboard connects to by default, so a judge can use it with zero setup. |
+| `POST /query_audio` | `X-API-Key` header | One-shot audio upload, REST response. |
+| `GET /health` | None | Liveness/readiness. |
+| `GET /metrics` | None | Latency percentiles per pipeline stage. |
+| `GET /dashboard` | None | Serves the static dashboard shell - never server-injects the API key (see Security below). |
 
-def merge_and_rank(dense, bm25):
-    # Normalize scores to [0, 1]
-    # Weighted fusion: 60% dense + 40% BM25
-    # Reason: dense captures semantics, BM25 catches keywords
-    merged = {}
-    for result in dense:
-        merged[result['doc_id']] = {
-            'dense_score': result['score'],
-            'bm25_score': 0.0,
-            'content': result['content']
-        }
-    
-    for result in bm25:
-        if result['doc_id'] in merged:
-            merged[result['doc_id']]['bm25_score'] = result['score']
-        else:
-            merged[result['doc_id']] = {
-                'dense_score': 0.0,
-                'bm25_score': result['score'],
-                'content': result['content']
-            }
-    
-    # Final score
-    for doc_id in merged:
-        merged[doc_id]['final_score'] = (
-            0.6 * merged[doc_id]['dense_score'] +
-            0.4 * merged[doc_id]['bm25_score']
-        )
-    
-    # Sort & return top-k
-    return sorted(merged.items(), 
-                  key=lambda x: x[1]['final_score'], 
-                  reverse=True)
-```
+The dashboard's WebSocket connection can't set custom headers, so the
+authenticated WS path uses a first-message auth frame rather than a
+query-string key (which would land in access logs and browser history).
+The demo path skips this entirely - no key is ever requested, held, or
+transmitted by the public dashboard.
 
----
-
-### 5. **LLM Generation Service** (`src/generation_service.py`)
-
-**Dual-Strategy Approach**:
-
-```python
-class GenerationService:
-    def __init__(self):
-        self.local_model = load_llama_7b()  # GPU
-        self.api_client = Anthropic()  # Claude API
-        self.elapsed_ms = 0
-    
-    async def generate(self, query, retrieved_docs):
-        # Option 1: Local Llama (fast path)
-        if self.elapsed_ms < 80:  # Budget check
-            return self.local_model.generate(
-                prompt=format_rag_prompt(query, retrieved_docs),
-                max_tokens=200,
-                temperature=0.3
-            )
-        
-        # Option 2: Claude API (quality path, if time permits)
-        else:
-            return self.api_client.messages.create(
-                model="claude-opus-4-8",
-                max_tokens=200,
-                messages=[{
-                    "role": "user",
-                    "content": format_rag_prompt(query, retrieved_docs)
-                }]
-            )
-```
-
-**Latency**:
-- Llama 7B: 100-150ms (on A40/V100 GPU)
-- Claude API: 100-300ms (network + inference)
-
----
-
-### 6. **Guardrails Service** (`src/guardrails.py`)
-
-```python
-class Guardrails:
-    def check_grounding(self, answer: str, retrieved_docs: List[str]) -> float:
-        # Method 1: Keyword overlap
-        answer_tokens = set(answer.lower().split())
-        doc_tokens = set(" ".join(retrieved_docs).lower().split())
-        overlap = len(answer_tokens & doc_tokens) / len(answer_tokens)
-        
-        # Method 2: Cross-encoder (optional, adds latency)
-        # from sentence_transformers import CrossEncoder
-        # model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        # scores = model.predict([(answer, doc) for doc in retrieved_docs])
-        # max_score = max(scores)
-        
-        return max(overlap, 0.5)  # Return normalized score
-    
-    def validate_answer(self, answer: str) -> bool:
-        # Checks:
-        # - Not empty
-        # - Not "I don't know" (hallucination detection)
-        # - Not too long (truncate if needed)
-        if not answer or len(answer) == 0:
-            return False
-        if answer.lower() in ["i don't know", "unknown", "not available"]:
-            return False
-        return True
-```
-
----
-
-## 🗂️ Data Flow Examples
-
-### Example 1: English Query (Fast Path)
-
-```
-User: "What is Aadhaar?"
-    ↓
-[STT] Sarvam transcribes audio → "What is Aadhaar?" (40ms)
-    ↓
-[Embedding] AI4Bharat encodes query → 384-dim vector (15ms)
-    ↓
-[Parallel Retrieval]
-  ├─ Pinecone: query_vector → top-10 docs (20ms)
-  └─ Whoosh: "What is Aadhaar?" → top-10 keyword matches (20ms)
-    ↓
-[Merge & Rank] Union + weighted fusion → top-5 (5ms)
-    ↓
-[LLM - Local Llama] Generate answer (120ms)
-    ↓
-[Grounding Check] Cross-encoder score: 0.87 ✓ (20ms)
-    ↓
-[Response] Total: 170ms ✓ (within budget)
-```
-
----
-
-### Example 2: Hindi Query (Fast Path)
-
-```
-User: (speaks in Hindi) "आधार क्या है?"
-    ↓
-[STT] Sarvam transcribes → "आधार क्या है?" (45ms)
-    ↓
-[Embedding] AI4Bharat (multilingual) → 384-dim vector (15ms)
-    ↓
-[Parallel Retrieval]
-  ├─ Pinecone: vector search → Hindi + English docs (20ms)
-  └─ Whoosh: "आधार क्या है?" → Hindi keyword matches (20ms)
-    ↓
-[Merge & Rank] → top-5 (5ms)
-    ↓
-[LLM - Local Llama] Generate Hindi answer (120ms)
-    ↓
-[Grounding Check] Score: 0.85 ✓ (20ms)
-    ↓
-[Response] Total: 175ms ✓ (within budget)
-```
-
----
-
-### Example 3: Complex Query (Fallback to Claude)
-
-```
-User: "How to apply for Aadhaar if I don't have identity documents?"
-    ↓
-[STT] Sarvam → full transcript (50ms)
-    ↓
-[Embedding + Retrieval] → 5 relevant docs (50ms)
-    ↓
-[Elapsed: 100ms, budget remaining: 100ms] ⚠️ Tight budget
-    ↓
-[LLM Decision] Local Llama output + grounding check
-    ↓
-[Grounding Check] Score: 0.65 ✗ (answer not well-grounded)
-    ↓
-[Budget Check] 140ms elapsed, 60ms remaining
-    ↓
-[Refine with Claude] Generate better answer using API (150ms)
-    ↓
-[Total] ~290ms (exceeds 200ms, but acceptable for refinement)
-```
+Rate limit on the demo path: 10 requests per 60 seconds per IP
+(`DEMO_RATE_LIMIT_MAX_REQUESTS`/`_WINDOW_SECONDS` in `main_app.py`),
+keyed on Fly's `Fly-Client-IP` header (set by Fly's edge, not
+client-controlled) rather than the spoofable `X-Forwarded-For`. For a WS
+connection, the limit applies per query submitted, not per raw WS message -
+a voice recording's many small `audio_chunk` messages don't each count
+against the budget.
 
 ---
 
 ## 🧠 Design Decisions
 
-### Decision 1: Hybrid Retrieval (Dense + BM25)
+### Decision 1: Hybrid Retrieval (Dense + BM25), on Chroma + bm25s
 
-**Options considered**:
-1. **Dense only** (cosine similarity) - Fast but misses keywords
-2. **BM25 only** - Keywords but misses semantic meaning
-3. **Hybrid** (dense + BM25 fusion) ← **Chosen**
-4. **ColBERT** - State-of-art but too slow
+**Options considered**: dense-only (fast, misses keywords), BM25-only
+(keywords, misses semantic meaning), hybrid (chosen), ColBERT (too slow at
+this scale).
 
-**Why hybrid?**
-- Catches "What is Aadhaar?" (semantic, dense handles)
-- Catches "Aadhaar registration form" (keyword, BM25 handles)
-- Latency still <50ms
-- Better quality than single approach
+Implemented as Chroma (dense, HNSW) + `bm25s` (sparse, memory-mapped)
+running in parallel per query, fused by `merge_and_rank`. (Not Pinecone/
+Whoosh, which an earlier draft of this document described but were never
+actually integrated for the shipped system - see Decision 4 for the
+Whoosh→bm25s switch specifically.)
 
 ---
 
-### Decision 2: Adaptive LLM (Local + API Fallback)
+### Decision 2: Ordered generation fallback (Groq -> local -> Claude), local excluded in production
 
-**Options**:
-1. Always use Llama - Fast but lower quality
-2. Always use Claude API - Best quality but slow
-3. Adaptive: Llama by default, Claude on demand ← **Chosen**
+**Options**: always-local (fast, lower quality), always-API (best quality,
+slower/costlier), an elapsed-time-triggered switch between them (the
+original plan), an ordered fallback chain (chosen).
 
-**Why adaptive?**
-- 80% of queries answered fast with Llama (<180ms)
-- Complex queries get Claude's quality (trade-off: 250-300ms)
-- Judges see sophistication (adaptive orchestration)
-- Stays near budget most of the time
+`GENERATION_BACKEND_ORDER = ["groq", "local", "claude"]` - each backend is
+tried in order; a failure or empty stream falls through to the next, not
+an elapsed-time budget check. Groq (`llama-3.1-8b-instant`) is fast enough
+in practice that the elapsed-time-switch design in the original plan was
+unnecessary. `temperature=0.1` on every backend (lowered from an earlier
+0.3 during production hardening - the live deployment's own benchmark
+caught the same query scoring grounded on one run and hedged on a repeat,
+phrasing variance from temperature feeding into the grounding-score
+jitter, not a retrieval difference).
+
+**Local llama.cpp is excluded in production** (`GENERATION_BACKEND_ORDER_
+OVERRIDE=groq,claude` set in `fly.toml`'s `[env]`): Fly's standard machines
+have no GPU, so local generation would only ever fail there. No code was
+deleted - `GenerationService` only imports `llama_cpp` when the GGUF model
+file exists on disk, and that file is deliberately excluded from the
+production Docker image (`.dockerignore`), so the import path is simply
+never reached.
 
 ---
 
 ### Decision 3: Chunking strategy - what's actually implemented
 
-**Corrected per the Aug 2026 spec-compliance audit** (`Markdown/spec_compliance_and_security_audit.md`), which flagged this section as documenting a chunking approach that didn't exist in code. This replaces that stale version.
+**Base layer (the vast majority of the corpus):** `scripts/download_dataset.py`
+uses MSMARCO-XI's own pre-segmented passages directly as retrieval units -
+one dataset passage = one whole-passage chunk (`data/msmarco-xi/chunks.jsonl`,
+743,739 rows). No splitting/windowing is applied to these; only `chunk_id`,
+`content`, `language`, `source`, `query_id` metadata.
 
-**Base layer (the vast majority of the corpus):** `scripts/download_dataset.py` uses MSMARCO-XI's own pre-segmented passages directly as retrieval units - one dataset passage = one whole-passage chunk (`data/msmarco-xi/chunks.jsonl`, 743,739 rows). No splitting/windowing is applied to these; there was no `section`/header-hierarchy metadata as originally documented here, only `chunk_id`, `content`, `language`, `source`, `query_id`.
+**Additive second and third layer (`src/chunking/`, `scripts/add_chunking_
+strategies.py`):** passages exceeding `LENGTH_THRESHOLD_TOKENS` (100) get
+further split two ways, indexed *alongside* the originals (never replacing
+them):
+- **Fixed-overlap** (`src/chunking/fixed_overlap.py`): sliding word-count
+  windows (`window_tokens=100`, `overlap_tokens=20`).
+- **Semantic-boundary** (`src/chunking/semantic.py`): splits between
+  sentences where embedding cosine similarity drops below a threshold,
+  rather than at a fixed size.
 
-**Additive second and third layer (`src/chunking/`, `scripts/add_chunking_strategies.py`):** passages exceeding `LENGTH_THRESHOLD_TOKENS` (100) get further split two ways, indexed *alongside* the originals (never replacing them):
-- **Fixed-overlap** (`src/chunking/fixed_overlap.py`): sliding word-count windows (`window_tokens=100`, `overlap_tokens=20`).
-- **Semantic-boundary** (`src/chunking/semantic.py`): splits between sentences where embedding cosine similarity drops below a threshold, rather than at a fixed size.
-
-Every chunk (base or sub-chunk) now stores:
+Every chunk (base or sub-chunk) stores:
 ```json
 {
   "doc_id": "chunk_id",
@@ -428,91 +232,115 @@ Every chunk (base or sub-chunk) now stores:
   "chunking_strategy": "fixed_overlap | semantic_boundary | null (base passage)"
 }
 ```
-`parent_id` is used in `src/retrieval.py::dedupe_by_parent` to collapse a whole passage and its own sub-chunk down to whichever scored higher, if both land in the same top-k set. `chunking_strategy` is surfaced in the API response's `retrieved_documents`/`sources` field, so which strategy contributed to an answer is directly demonstrable, not just present in the code.
-
-**Honest scope note:** `LENGTH_THRESHOLD_TOKENS=100` means most MSMARCO passages (which tend to be short) don't get sub-chunked at all - report the real generated-sub-chunk count from an actual `add_chunking_strategies.py` run in the submission writeup rather than assuming a large number.
+`parent_id` is used in `src/retrieval.py::dedupe_by_parent` to collapse a
+whole passage and its own sub-chunk down to whichever scored higher, if
+both land in the same top-k set. `chunking_strategy` is surfaced in the
+API response's `retrieved_documents` field. The full post-chunking corpus
+(base + sub-chunks, deployed and live) is **858,768** documents, verified
+directly against the running bm25s index, not assumed.
 
 ---
 
 ### Decision 4: Whoosh over Elasticsearch (superseded - see note)
 
-**Superseded**: Whoosh was later replaced by `bm25s` (`src/bm25s_service.py`) - Whoosh's per-query disk-segment reopening made it slow even with searcher caching, and it was returning zero results on most natural-language queries. `bm25s` scores as a sparse matmul over a memory-mapped index instead. `src/whoosh_service.py` was removed from the codebase. The reasoning below for ruling out Elasticsearch (heavy, distributed, unnecessary at this scale) still applies to `bm25s`.
+**Superseded**: Whoosh was later replaced by `bm25s` (`src/bm25s_service.py`)
+- Whoosh's per-query disk-segment reopening made it slow even with searcher
+caching, and it was returning zero results on most natural-language
+queries. `bm25s` scores as a sparse matmul over a memory-mapped index
+instead. `src/whoosh_service.py` was removed from the codebase.
 
-**Alternatives**:
-1. Elasticsearch - Powerful but heavy (Java, memory)
-2. Whoosh - Lightweight Python, perfect for this scale
-3. BM25Okapi library - Minimal but less featured
-
-**Why Whoosh?**
-- Pure Python (no C dependencies)
-- Single-machine indexing (no distributed setup)
-- ~20-30ms latency on MSMARCO-XI (~100k docs)
-- File-based index (easy to version control)
+**Why not Elasticsearch**: heavy (Java, memory), distributed setup
+unnecessary at this scale. `bm25s` keeps the same benefit (pure-Python,
+no distributed infra, file-based index) that made Whoosh attractive
+originally, without Whoosh's correctness problems.
 
 ---
 
-## 📈 Scalability Considerations
+### Decision 5: Two caching layers, checked before retrieval/generation
 
-### Current Setup (this project)
-- **Dataset**: MSMARCO-XI (~1M docs, ~100k indexed for demo)
-- **Latency**: P50 <180ms, P70 <200ms
-- **Cost**: Free-tier Pinecone, self-hosted Llama
-- **Throughput**: ~10 queries/sec on single GPU
+**Literal cache** (`src/answer_cache.py`): exact `(query, retrieved_doc_ids)`
+key - catches identical repeats, checked after retrieval so a corpus change
+that alters which docs a query retrieves invalidates the key automatically.
 
-### Future Scale-up
-- **If 10M+ docs**: Use Milvus or Elasticsearch
-- **If 1000+ QPS**: Add API gateway + load balancer
-- **If higher quality needed**: Fine-tune Llama or use larger model
-- **If multilingual complexity**: Use separate indexes per language
+**Semantic cache** (`src/semantic_cache.py`): embedding-similarity match
+(`SEMANTIC_CACHE_SIMILARITY_THRESHOLD=0.92`), checked *before* retrieval -
+a hit skips retrieval and generation both, not just generation. This is
+also what reconciles speculative execution: a WS client can fire a
+headless pipeline run on a live-caption prefix while the user is still
+talking, and if the guess's embedding was close enough to the real
+post-stop transcript's, the real query becomes an instant cache hit.
 
----
-
-## 🔐 Security Considerations
-
-- **API Keys**: Store in `.env`, never in code
-- **Rate limiting**: Implement on /query endpoint
-- **Input validation**: Sanitize query text (prevent injection)
-- **Output filtering**: Remove sensitive info from retrieved docs
-- **Logging**: Log queries + answers for auditing (GDPR-compliant)
+Hedged/declined answers are never written to either cache.
 
 ---
 
-## 📊 Monitoring & Metrics
+### Decision 6: Corpus on a Fly volume, not baked into the image
 
-Track:
-- **Latency**: P50, P70, P100 per component
-- **Quality**: Grounding score, user satisfaction
-- **Throughput**: Queries/sec
-- **Error rate**: STT failures, API timeouts
-- **Cost**: Pinecone, API calls
-
-```python
-metrics = {
-    "latency_ms": {
-        "stt": 45,
-        "embedding": 15,
-        "retrieval": 40,
-        "generation": 120,
-        "grounding": 20,
-        "total": 240
-    },
-    "quality": {
-        "grounding_score": 0.87,
-        "retrieved_relevance": 0.92
-    }
-}
-```
+The ~4.6GB corpus (Chroma DB + bm25s index) is mounted from a Fly volume
+(`fly.toml`'s `[mounts]`), not copied into the Docker image. A first
+attempt baked it in directly; the resulting ~9.3GB image consistently
+failed to start on Fly (confirmed via a trivial hello-world image starting
+instantly on the same app/region/config, isolating the failure to image
+size/pull time, not application code). Both embedding models
+(`sentence-transformers` + the grounding cross-encoder) *are* baked into
+the image at build time instead - the opposite tradeoff, since they're
+needed at every cold start and re-downloading them each time cost 5-10+
+minutes before the earlier fix.
 
 ---
 
-## Next Steps
+## 🚀 Deployment
 
-1. **Implement** retrieval pipeline (IMPLEMENTATION_GUIDE.md)
-2. **Test** each component (TESTING.md)
-3. **Optimize** latency bottlenecks (notebooks/03_latency_profiling.ipynb)
-4. **Deploy** to VPS (DEPLOYMENT.md)
+Live at `https://ragingoa.fly.dev` (Fly.io, `sin`/Singapore region -
+`bom`/Mumbai had no capacity at deploy time). `Dockerfile` builds a
+CPU-only image (torch installed from PyTorch's CPU wheel index - the
+default PyPI wheel bundles unused CUDA runtime libraries) with both models
+pre-downloaded at build time. `fly.toml` pins the exact deployed image
+digest rather than tracking the Dockerfile directly, since `fly deploy`
+silently prefers a pinned `[build] image` over the Dockerfile even when a
+`--dockerfile` CLI flag says otherwise - shipping a Dockerfile change
+means temporarily un-pinning, rebuilding, then re-pinning to the new
+digest (documented inline in `fly.toml`).
+
+`auto_stop_machines = false` / `min_machines_running = 1`: always-on
+through the judging window, so a judge never hits a cold-start WebSocket
+failure. `PYTHONUNBUFFERED=1` is set so container logs reflect real-time
+progress rather than sitting in Python's stdout buffer until it flushes.
 
 ---
 
-**Status**: Architecture defined ✅  
-**Next**: Implementation phase  
+## 🔐 Security
+
+- **API keys**: `.env`, never committed, never baked into a Docker image
+  layer (`.dockerignore`). Loaded via `flyctl secrets set` in production.
+- **`RAG_API_KEY` never reaches the browser**: `/dashboard` serves a static
+  shell with no server-side templating - it used to inject the key into
+  the page, which was only safe under a loopback-only bind; that was
+  removed before any public deployment. Verified directly (grep the served
+  page source for the key value - zero matches).
+- **Public demo path instead of a shared/weakened key**: rather than
+  re-exposing `RAG_API_KEY` to make the dashboard usable without setup,
+  `/demo/query` and `/ws/demo` are separate, keyless, rate-limited routes
+  (see Access paths above) running the identical pipeline and guardrails.
+- **Rate-limit key is spoof-resistant**: keyed on Fly's `Fly-Client-IP`
+  (set by Fly's edge, unspoofable by the client), not `X-Forwarded-For`
+  (any caller can set that header to an arbitrary value) - caught by
+  automated security review before shipping.
+- **Off-topic/unsafe input gate**: see above - runs ahead of retrieval and
+  generation on every access path, authenticated or demo.
+- **Timing-safe key comparison**: `secrets.compare_digest`, not `==`.
+
+---
+
+## 📊 Monitoring
+
+`GET /metrics` returns P50/P70/P100 latency per pipeline stage
+(embedding, retrieval_dense, retrieval_sparse, generation, grounding_check,
+merge_results - see `src/latency_tracker.py`), sourced from real request
+traffic, not synthetic benchmarks. `GET /debug/cache_stats` (key-gated)
+reports literal vs. semantic cache hit/miss counts.
+
+For a point-in-time percentile snapshot against the live public URL,
+see `benchmark/percentile_batch_results.json` and
+`benchmark/run_percentile_batch.py` - rather than hardcoding specific
+latency numbers into this document, where they'd inevitably go stale.
