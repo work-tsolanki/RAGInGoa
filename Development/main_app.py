@@ -7,7 +7,6 @@ This orchestrates all services: STT, Embedding, Retrieval, LLM Generation, Guard
 
 import asyncio
 import base64
-import json
 import secrets
 import time
 from pathlib import Path
@@ -15,7 +14,7 @@ from pathlib import Path
 import httpx
 from typing import Optional, List
 from fastapi import (
-    FastAPI, UploadFile, File, HTTPException, Header, Depends,
+    FastAPI, UploadFile, File, HTTPException, Header, Depends, Request,
     WebSocket, WebSocketDisconnect,
 )
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -30,17 +29,19 @@ from config import (
     USE_LOCAL_LLM, USE_CLAUDE_FALLBACK, RAG_API_KEY,
     ANSWER_CACHE_MAX_SIZE, ANSWER_CACHE_TTL_SECONDS, ANSWER_CACHE_MIN_GROUNDING,
     SEMANTIC_CACHE_MAX_SIZE, SEMANTIC_CACHE_TTL_SECONDS, SEMANTIC_CACHE_SIMILARITY_THRESHOLD,
+    CHROMA_PERSIST_DIR, BM25S_INDEX_DIR,
 )
 from src.embedding_service import EmbeddingService
 from src.bm25s_service import Bm25sService
 from src.chroma_service import ChromaService
 from src.retrieval import merge_and_rank
 from src.generation_service import GenerationService, clean_answer_boilerplate
-from src.guardrails import Guardrails
+from src.guardrails import Guardrails, build_low_grounding_response, build_off_topic_response, build_unsafe_response, check_unsafe
 from src.stt_service import SttService, RealtimeSttSession, sarvam_code_to_language
 from src.answer_cache import AnswerCache, make_cache_key
 from src.semantic_cache import SemanticCache
 from src.latency_tracker import get_tracker
+from src.rate_limiter import RateLimiter
 
 # ============================================================================
 # Initialize FastAPI App
@@ -72,21 +73,18 @@ DASHBOARD_HTML_PATH = Path(__file__).parent / "dashboard" / "index.html"
 @app.get("/dashboard/", response_class=HTMLResponse)
 async def dashboard():
     """
-    Serves the local dashboard with the server's own RAG_API_KEY injected at
-    request time, so it never has to be typed or stored in the browser
-    (localStorage, cookies, etc). Deliberately unauthenticated - but that's
-    only safe because uvicorn.run() below binds to 127.0.0.1 only. On any
-    host reachable off-machine, this route would hand the key to anyone
-    who asks; it would need to gate on verify_api_key (accepting the key via
-    a query param for that one bootstrap request) before being exposed like
-    that again.
+    Serves the static dashboard shell - no server-side templating, no key
+    injection. Previously injected RAG_API_KEY into the page here, which
+    was only safe because uvicorn.run() below bound to 127.0.0.1
+    exclusively (nobody who couldn't already reach the API could reach the
+    dashboard either). That assumption breaks the moment this deploys
+    publicly - anyone who loads the page could read the key out of the
+    source regardless of how it got there. Fixed by removing the injection
+    entirely: the dashboard now prompts for the key client-side and holds
+    it in a JS variable only (see dashboard/index.html) - never rendered
+    into the page, never persisted to localStorage/cookies.
     """
     html = DASHBOARD_HTML_PATH.read_text(encoding="utf-8")
-    # Escaped so a key containing "</script>" (not possible with the current
-    # generated key format, but not guaranteed) can't break out of the
-    # injected <script> block.
-    safe_key = json.dumps(RAG_API_KEY or "")[1:-1].replace("</", "<\\/")
-    html = html.replace("__RAG_API_KEY_INJECTED__", safe_key)
     return HTMLResponse(html)
 
 
@@ -102,6 +100,48 @@ def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
     rather than silent."""
     if RAG_API_KEY and not secrets.compare_digest(x_api_key or "", RAG_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+# ============================================================================
+# Public demo path (no API key) - /demo/query and /ws/demo below
+# ============================================================================
+# The dashboard is meant to be usable by a judge with zero setup - requiring
+# RAG_API_KEY there defeats that, and the key was already deliberately
+# removed from server-rendered HTML earlier (see dashboard() above) so it
+# can't just be re-exposed to satisfy this. Instead: a separate, keyless
+# path protected by a per-IP rate limit instead of a credential. Generation
+# config, retrieval, and the off-topic/unsafe guardrail are identical to the
+# authenticated path - this only changes how access is gated, not what the
+# system does once a request is let through.
+DEMO_RATE_LIMIT_MAX_REQUESTS = 10
+DEMO_RATE_LIMIT_WINDOW_SECONDS = 60
+demo_rate_limiter = RateLimiter(
+    max_requests=DEMO_RATE_LIMIT_MAX_REQUESTS,
+    window_seconds=DEMO_RATE_LIMIT_WINDOW_SECONDS,
+)
+DEMO_RATE_LIMIT_MESSAGE = (
+    f"You've hit the demo rate limit ({DEMO_RATE_LIMIT_MAX_REQUESTS} queries per "
+    f"{DEMO_RATE_LIMIT_WINDOW_SECONDS}s). Please wait a moment and try again."
+)
+
+
+def _client_ip(request_or_websocket) -> str:
+    """Fly-Client-IP is set by Fly's own edge and overwritten on the way in,
+    so a client can't spoof it - unlike X-Forwarded-For, which any caller
+    can set to an arbitrary value and trivially defeat the per-IP rate
+    limit below (caught by automated security review before this shipped).
+    .client.host is the last-resort fallback for local dev, where there's
+    no Fly edge in front of the app at all."""
+    fly_client_ip = request_or_websocket.headers.get("fly-client-ip")
+    if fly_client_ip:
+        return fly_client_ip
+    client = request_or_websocket.client
+    return client.host if client else "unknown"
+
+
+def verify_demo_rate_limit(http_request: Request):
+    if not demo_rate_limiter.allow(_client_ip(http_request)):
+        raise HTTPException(status_code=429, detail=DEMO_RATE_LIMIT_MESSAGE)
 
 # ============================================================================
 # Data Models
@@ -123,6 +163,9 @@ class QueryResponse(BaseModel):
     backend: Optional[str] = None
     cache_type: Optional[str] = None  # "semantic" | "literal" | None (full miss)
     semantic_similarity: Optional[float] = None
+    hedged: bool = False  # True when the answer was replaced with a low-grounding hedge message
+    declined: bool = False  # True when the query was rejected pre-retrieval (off-topic or unsafe)
+    decline_reason: Optional[str] = None  # "off_topic" | "unsafe" | None
 
 class HealthResponse(BaseModel):
     status: str
@@ -162,11 +205,11 @@ def initialize_services():
         # bm25s: open the pre-built full-scale index (743k+ MSMARCO-XI passages,
         # built offline by scripts/build_bm25s_index.py - do not rebuild on every startup)
         print("  → Opening full-scale bm25s index...")
-        bm25_service = Bm25sService(index_dir="bm25s_index_full")
+        bm25_service = Bm25sService(index_dir=BM25S_INDEX_DIR)
 
         # Chroma: open the pre-built full-scale persistent collection
         print("  → Opening full-scale Chroma collection...")
-        chroma_service = ChromaService(collection_name="hhgoa_rag_full")
+        chroma_service = ChromaService(collection_name="hhgoa_rag_full", persist_dir=CHROMA_PERSIST_DIR)
 
         # Generation
         print("  → Loading LLM generation service...")
@@ -174,7 +217,7 @@ def initialize_services():
         
         # Guardrails
         print("  → Loading guardrails...")
-        guardrails = Guardrails()
+        guardrails = Guardrails(embedding_service=embedding_service)
 
         # Warm-up: first call into each backend pays a one-time cache/JIT
         # cost (CUDA context, HNSW page-in, etc.) that otherwise lands on
@@ -232,14 +275,16 @@ async def cache_stats():
         "semantic": semantic_cache.stats(),
     }
 
-@app.post("/query", response_model=QueryResponse, dependencies=[Depends(verify_api_key)])
-async def query_endpoint(request: QueryRequest):
+async def _handle_query(request: QueryRequest) -> QueryResponse:
     """
-    Process a text query through the full RAG pipeline.
-    
+    Process a text query through the full RAG pipeline. Shared by both
+    /query (key-gated) and /demo/query (rate-limited, no key) - identical
+    pipeline either way, only the access gate differs (see verify_api_key
+    vs verify_demo_rate_limit).
+
     Args:
         request: QueryRequest with query_text, language, top_k
-    
+
     Returns:
         QueryResponse with answer, retrieved docs, confidence, latency
     """
@@ -250,11 +295,49 @@ async def query_endpoint(request: QueryRequest):
         # ====== Step 1: Input Validation ======
         if not request.query_text or len(request.query_text.strip()) == 0:
             raise ValueError("Query cannot be empty")
-        
+
+        # ====== Step 1b: Unsafe-Input Check ======
+        # Pure text pattern match, no embedding/retrieval/generation cost -
+        # this is "shouldn't have been processed as a real query at all,"
+        # a different failure mode than an ungrounded answer.
+        if check_unsafe(request.query_text):
+            total_latency = (time.time() - pipeline_start) * 1000
+            latency_breakdown["total"] = total_latency
+            return QueryResponse(
+                query=request.query_text,
+                answer=build_unsafe_response(request.language),
+                retrieved_documents=[],
+                confidence=0.0,
+                latency_breakdown={k: f"{v:.1f}ms" for k, v in latency_breakdown.items()},
+                status="declined",
+                declined=True,
+                decline_reason="unsafe",
+            )
+
         # ====== Step 2: Embed Query ======
         start = time.time()
         query_embedding = embedding_service.embed_query(request.query_text)
         latency_breakdown["embedding"] = (time.time() - start) * 1000
+
+        # ====== Step 2a: Off-Topic Check ======
+        # Before the semantic/literal cache lookup, same reasoning as the
+        # unsafe check above - no point spending a cache lookup, let alone
+        # retrieval/generation, on a query the corpus was never going to be
+        # able to ground an answer in.
+        is_off_topic, off_topic_similarity = guardrails.check_off_topic(query_embedding)
+        if is_off_topic:
+            total_latency = (time.time() - pipeline_start) * 1000
+            latency_breakdown["total"] = total_latency
+            return QueryResponse(
+                query=request.query_text,
+                answer=build_off_topic_response(request.language),
+                retrieved_documents=[],
+                confidence=0.0,
+                latency_breakdown={k: f"{v:.1f}ms" for k, v in latency_breakdown.items()},
+                status="declined",
+                declined=True,
+                decline_reason="off_topic",
+            )
 
         # ====== Step 2b: Semantic Cache Lookup ======
         # Checked BEFORE retrieval, not after like the literal cache - a hit
@@ -281,6 +364,7 @@ async def query_endpoint(request: QueryRequest):
                 backend="cache",
                 cache_type="semantic",
                 semantic_similarity=semantic_similarity,
+                hedged=False,  # hedges are never cached, see Step 8 below
             )
 
         # ====== Step 3: Parallel Retrieval ======
@@ -315,7 +399,8 @@ async def query_endpoint(request: QueryRequest):
             {
                 "doc_id": doc["doc_id"],
                 "content": doc["content"][:200],  # Truncate for response
-                "score": float(doc["final_score"])
+                "score": float(doc["final_score"]),
+                "chunking_strategy": doc.get("chunking_strategy"),  # None = whole passage, see src/chunking/
             }
             for doc in retrieved_docs
         ]
@@ -327,6 +412,7 @@ async def query_endpoint(request: QueryRequest):
         cache_key = make_cache_key(request.query_text, [doc["doc_id"] for doc in retrieved_docs])
         cache_hit = False
         cache_type = None
+        is_hedged = False  # never True on a cache hit - hedges are never cached, see below
         start = time.time()
         cached = answer_cache.get(cache_key)
         latency_breakdown["cache_lookup"] = (time.time() - start) * 1000
@@ -368,16 +454,26 @@ async def query_endpoint(request: QueryRequest):
 
             # ====== Step 8: Validate Answer ======
             is_valid = guardrails.validate_answer(answer)
-            if is_valid and grounding_score >= ANSWER_CACHE_MIN_GROUNDING:
+            if not is_valid:
+                # Model explicitly refused / gave an empty or refusal-phrase
+                # non-answer.
+                answer = "I could not find a clear answer to your question. Please try rephrasing."
+                grounding_score = 0.5
+            elif grounding_score < ANSWER_CACHE_MIN_GROUNDING:
+                # Passed validate_answer but isn't actually grounded in the
+                # retrieved context - the confident-hallucination case, not
+                # the "model said it doesn't know" case.
+                answer = build_low_grounding_response(request.language)
+                is_hedged = True
+
+            # Never cache a hedge or refusal response as if it were the answer.
+            if is_valid and not is_hedged and grounding_score >= ANSWER_CACHE_MIN_GROUNDING:
                 answer_cache.set(cache_key, {"answer": answer, "grounding_score": grounding_score})
                 semantic_cache.set(cache_key, query_embedding, {
                     "answer": answer,
                     "grounding_score": grounding_score,
                     "retrieved_documents": formatted_docs,
                 })
-            if not is_valid:
-                answer = "I could not find a clear answer to your question. Please try rephrasing."
-                grounding_score = 0.5
 
         # ====== Step 9: Format Response ======
         total_latency = (time.time() - pipeline_start) * 1000
@@ -393,6 +489,7 @@ async def query_endpoint(request: QueryRequest):
             cache_hit=cache_hit,
             backend=backend,
             cache_type=cache_type,
+            hedged=is_hedged,
         )
     
     except ValueError as e:
@@ -401,6 +498,20 @@ async def query_endpoint(request: QueryRequest):
         if DEBUG:
             print(f"✗ Query failed: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/query", response_model=QueryResponse, dependencies=[Depends(verify_api_key)])
+async def query_endpoint(request: QueryRequest):
+    return await _handle_query(request)
+
+
+@app.post("/demo/query", response_model=QueryResponse, dependencies=[Depends(verify_demo_rate_limit)])
+async def demo_query_endpoint(request: QueryRequest):
+    """Same pipeline as /query - no RAG_API_KEY required, gated by
+    verify_demo_rate_limit instead. Exists so the public dashboard works
+    for a judge with zero setup, without re-exposing RAG_API_KEY."""
+    return await _handle_query(request)
+
 
 async def _maybe_send(websocket, payload):
     """websocket may be None for a speculative (headless) pipeline run - see
@@ -427,6 +538,23 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
     the reconciliation: if the speculative guess's embedding was close
     enough (cosine >= SEMANTIC_CACHE_SIMILARITY_THRESHOLD) to the real
     transcript's, this becomes an instant cache hit."""
+    if check_unsafe(query_text):
+        latency_breakdown["total"] = (time.time() - pipeline_start) * 1000
+        await _maybe_send(websocket, {
+            "stage": "final",
+            "query": query_text,
+            "answer": build_unsafe_response(target_language),
+            "confidence": 0.0,
+            "cache_hit": False,
+            "hedged": False,
+            "declined": True,
+            "decline_reason": "unsafe",
+            "backend": None,
+            "retrieved_documents": [],
+            "latency_breakdown": {k: round(v, 1) for k, v in latency_breakdown.items()},
+        })
+        return
+
     await _maybe_send(websocket, {"stage": "embedding", "status": "start"})
     start = time.time()
     query_embedding = await asyncio.to_thread(embedding_service.embed_query, query_text)
@@ -435,6 +563,24 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
         "stage": "embedding", "status": "done",
         "latency_ms": round(latency_breakdown["embedding"], 1),
     })
+
+    is_off_topic, off_topic_similarity = guardrails.check_off_topic(query_embedding)
+    if is_off_topic:
+        latency_breakdown["total"] = (time.time() - pipeline_start) * 1000
+        await _maybe_send(websocket, {
+            "stage": "final",
+            "query": query_text,
+            "answer": build_off_topic_response(target_language),
+            "confidence": 0.0,
+            "cache_hit": False,
+            "hedged": False,
+            "declined": True,
+            "decline_reason": "off_topic",
+            "backend": None,
+            "retrieved_documents": [],
+            "latency_breakdown": {k: round(v, 1) for k, v in latency_breakdown.items()},
+        })
+        return
 
     start = time.time()
     semantic_payload, semantic_similarity = await asyncio.to_thread(semantic_cache.lookup, query_embedding)
@@ -449,6 +595,7 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
             "confidence": float(semantic_payload["grounding_score"]),
             "cache_hit": True,
             "cache_type": "semantic",
+            "hedged": False,  # hedges are never cached, see _run_query_pipeline's gating below
             "semantic_similarity": semantic_similarity,
             "backend": "cache",
             "retrieved_documents": semantic_payload["retrieved_documents"],
@@ -481,7 +628,12 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
     retrieved_docs = merge_and_rank(dense_results, bm25_results, top_k=top_k, target_language=target_language)
     latency_breakdown["merge"] = (time.time() - start) * 1000
     formatted_docs = [
-        {"doc_id": doc["doc_id"], "content": doc["content"][:200], "score": float(doc["final_score"])}
+        {
+            "doc_id": doc["doc_id"],
+            "content": doc["content"][:200],
+            "score": float(doc["final_score"]),
+            "chunking_strategy": doc.get("chunking_strategy"),  # None = whole passage, see src/chunking/
+        }
         for doc in retrieved_docs
     ]
     await _maybe_send(websocket, {
@@ -495,6 +647,7 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
     cache_key = make_cache_key(query_text, [doc["doc_id"] for doc in retrieved_docs])
     cache_hit = False
     cache_type = None
+    is_hedged = False  # never True on a cache hit - hedges are never cached, see below
     start = time.time()
     cached = answer_cache.get(cache_key)
     latency_breakdown["cache_lookup"] = (time.time() - start) * 1000
@@ -556,16 +709,27 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
         })
 
         is_valid = guardrails.validate_answer(answer)
-        if is_valid and grounding_score >= ANSWER_CACHE_MIN_GROUNDING:
+        if not is_valid:
+            # Model explicitly refused / gave an empty or refusal-phrase
+            # non-answer.
+            answer = "I could not find a clear answer to your question. Please try rephrasing."
+            grounding_score = 0.5
+        elif grounding_score < ANSWER_CACHE_MIN_GROUNDING:
+            # Passed validate_answer (not empty/refusal-phrase) but isn't
+            # actually grounded in the retrieved context - the confident-
+            # hallucination case, not the "model said it doesn't know" case.
+            # Reproduces the audit's 0.0868-grounding Gujarati finding.
+            answer = build_low_grounding_response(target_language)
+            is_hedged = True
+
+        # Never cache a hedge or refusal response as if it were the answer.
+        if is_valid and not is_hedged and grounding_score >= ANSWER_CACHE_MIN_GROUNDING:
             answer_cache.set(cache_key, {"answer": answer, "grounding_score": grounding_score})
             semantic_cache.set(cache_key, query_embedding, {
                 "answer": answer,
                 "grounding_score": grounding_score,
                 "retrieved_documents": formatted_docs,
             })
-        if not is_valid:
-            answer = "I could not find a clear answer to your question. Please try rephrasing."
-            grounding_score = 0.5
 
     latency_breakdown["total"] = (time.time() - pipeline_start) * 1000
     await _maybe_send(websocket, {
@@ -575,6 +739,7 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
         "confidence": float(grounding_score),
         "cache_hit": cache_hit,
         "cache_type": cache_type,
+        "hedged": is_hedged,
         "backend": backend,
         "retrieved_documents": formatted_docs,
         "latency_breakdown": {k: round(v, 1) for k, v in latency_breakdown.items()},
@@ -652,10 +817,9 @@ async def _relay_realtime_stt(websocket, session, target_language, state):
             speculative_task.cancel()
 
 
-@app.websocket("/ws/query")
-async def ws_query_endpoint(websocket: WebSocket):
+async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
     """
-    Streaming version of /query for the local dashboard: pushes one JSON event
+    Streaming version of /query for the dashboard: pushes one JSON event
     per pipeline stage (start/done + timing) instead of waiting for the full
     response, so the UI can show live progress.
 
@@ -664,10 +828,15 @@ async def ws_query_endpoint(websocket: WebSocket):
     {"type": "auth", "api_key": ...}. A query-string api_key was considered
     and rejected - it would land in uvicorn's access log and browser history
     in cleartext.
+
+    Shared by both /ws/query (require_auth=True) and /ws/demo
+    (require_auth=False, rate-limited instead - see verify_demo_rate_limit
+    and the _check_demo_rate_limit closure below). Identical pipeline
+    either way, only the access gate differs.
     """
     await websocket.accept()
 
-    if RAG_API_KEY:
+    if require_auth and RAG_API_KEY:
         try:
             auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10)
         except Exception:
@@ -677,6 +846,18 @@ async def ws_query_endpoint(websocket: WebSocket):
         if not secrets.compare_digest(submitted_key or "", RAG_API_KEY):
             await websocket.close(code=4401, reason="Invalid API key")
             return
+
+    # Rate limit is per query submitted, not per raw WS message - a voice
+    # recording sends many small audio_chunk messages for one logical query,
+    # and those shouldn't count against the same budget as a judge typing
+    # several separate questions.
+    async def _check_demo_rate_limit() -> bool:
+        if require_auth:
+            return True
+        if demo_rate_limiter.allow(_client_ip(websocket)):
+            return True
+        await websocket.send_json({"stage": "error", "message": DEMO_RATE_LIMIT_MESSAGE})
+        return False
 
     await websocket.send_json({"stage": "auth", "status": "ok"})
 
@@ -813,6 +994,9 @@ async def ws_query_endpoint(websocket: WebSocket):
                     speculative_task.cancel()
                     speculative_task = None
 
+                if not await _check_demo_rate_limit():
+                    continue
+
                 try:
                     await _run_query_pipeline(
                         websocket, query_text, top_k, target_language, pipeline_start, latency_breakdown
@@ -868,6 +1052,9 @@ async def ws_query_endpoint(websocket: WebSocket):
                         "language_code": stt_result["language_code"],
                     })
 
+                    if not await _check_demo_rate_limit():
+                        continue
+
                     await _run_query_pipeline(
                         websocket, query_text, top_k, target_language, pipeline_start, latency_breakdown
                     )
@@ -892,6 +1079,9 @@ async def ws_query_endpoint(websocket: WebSocket):
                 await websocket.send_json({"stage": "error", "message": "Query cannot be empty"})
                 continue
 
+            if not await _check_demo_rate_limit():
+                continue
+
             pipeline_start = time.time()
             latency_breakdown = {}
 
@@ -909,6 +1099,19 @@ async def ws_query_endpoint(websocket: WebSocket):
         if speculative_task is not None and not speculative_task.done():
             speculative_task.cancel()
         await _close_stt_session()
+
+
+@app.websocket("/ws/query")
+async def ws_query_endpoint(websocket: WebSocket):
+    await _ws_handler(websocket, require_auth=True)
+
+
+@app.websocket("/ws/demo")
+async def ws_demo_endpoint(websocket: WebSocket):
+    """Same pipeline as /ws/query (text and voice both work) - no
+    RAG_API_KEY required, gated by a per-IP rate limit instead. This is
+    what the public dashboard connects to by default."""
+    await _ws_handler(websocket, require_auth=False)
 
 
 @app.post("/query_audio", dependencies=[Depends(verify_api_key)])
@@ -992,10 +1195,10 @@ if __name__ == "__main__":
     
     uvicorn.run(
         "main_app:app",
-        # Loopback-only: /dashboard hands the RAG_API_KEY to whoever loads
-        # it, unauthenticated, so it must not be reachable off this machine.
-        # This is the local-only deployment target - if remote/LAN access is
-        # ever needed again, /dashboard has to gate on verify_api_key first.
+        # 127.0.0.1 for local dev. /dashboard no longer server-injects
+        # RAG_API_KEY (see dashboard() above) so this is safe to change to
+        # 0.0.0.0 for deployment - the key is only ever typed client-side
+        # and sent over the WS auth frame, never rendered into HTML.
         host="127.0.0.1",
         port=8000,
         reload=DEBUG,

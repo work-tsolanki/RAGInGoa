@@ -1,0 +1,50 @@
+app = "ragingoa"  # fallback if taken: ragingoa-hhg2026
+primary_region = "sin"  # Singapore - bom (Mumbai) had no VM capacity available at deploy time
+
+[build]
+  # Pinned to the exact image actually serving traffic (verified live and
+  # healthy at deploy time), not the Dockerfile - `image` and `dockerfile`
+  # are mutually exclusive in Fly's build config, and `image` wins even
+  # when a CLI flag says otherwise (confirmed: `--dockerfile` was silently
+  # ignored while this was set). To ship a Dockerfile change: temporarily
+  # set this back to `dockerfile = "Dockerfile"`, run
+  # `fly deploy --build-only --push`, then re-pin this line to the new
+  # tag/digest before deploying - don't leave it unpinned, or the next bare
+  # `fly deploy` rebuilds from source and silently drifts from what was
+  # actually verified.
+  image = "registry.fly.io/ragingoa:demo-access-v2@sha256:10beb459441310376cf8ee612c8ffa288c846cfe7fd7de80723be8c8a6b27cbe"
+
+[env]
+  # Local llama.cpp fallback needs a GPU; Fly's standard machines don't have
+  # one, so production skips straight from Groq to Claude. No code change
+  # needed - config.py already reads this override (see GENERATION_BACKEND_ORDER
+  # in config.py). Local generation code stays in generation_service.py,
+  # just unreachable here.
+  GENERATION_BACKEND_ORDER_OVERRIDE = "groq,claude"
+  # Corpus lives on the mounted volume below, not in the image - see .dockerignore
+  # and config.py for why (a 9.3GB image with the data baked in consistently
+  # failed to start: confirmed via a trivial hello-world image starting instantly
+  # on this same app/region/config, isolating the problem to image size/pull time).
+  CHROMA_PERSIST_DIR = "/data/chroma_db"
+  BM25S_INDEX_DIR = "/data/bm25s_index_full"
+
+[mounts]
+  source = "ragingoa_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false   # keep false through the judging window (through Aug 22) -
+                                # prevents cold-start WebSocket failures during a live demo
+  auto_start_machines = true
+  min_machines_running = 1     # always-on, no scale-to-zero during judging period
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2            # shared-cpu machines cap memory at 2048MB per vCPU - 2 vCPUs needed to
+                      # unlock 4096MB (a 1-vCPU/4096MB combo is rejected by Fly outright)
+  memory_mb = 4096   # headroom for torch + sentence-transformers + opening the Chroma DB at
+                      # boot. (The earlier "created, but never started" failures turned out
+                      # to be the oversized image, not memory - see .dockerignore/[env] above -
+                      # but this is still a reasonable margin for the actual workload.)

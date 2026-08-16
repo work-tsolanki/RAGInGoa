@@ -408,29 +408,35 @@ User: "How to apply for Aadhaar if I don't have identity documents?"
 
 ---
 
-### Decision 3: Rich Metadata Chunks
+### Decision 3: Chunking strategy - what's actually implemented
 
-Each chunk stores:
+**Corrected per the Aug 2026 spec-compliance audit** (`Markdown/spec_compliance_and_security_audit.md`), which flagged this section as documenting a chunking approach that didn't exist in code. This replaces that stale version.
+
+**Base layer (the vast majority of the corpus):** `scripts/download_dataset.py` uses MSMARCO-XI's own pre-segmented passages directly as retrieval units - one dataset passage = one whole-passage chunk (`data/msmarco-xi/chunks.jsonl`, 743,739 rows). No splitting/windowing is applied to these; there was no `section`/header-hierarchy metadata as originally documented here, only `chunk_id`, `content`, `language`, `source`, `query_id`.
+
+**Additive second and third layer (`src/chunking/`, `scripts/add_chunking_strategies.py`):** passages exceeding `LENGTH_THRESHOLD_TOKENS` (100) get further split two ways, indexed *alongside* the originals (never replacing them):
+- **Fixed-overlap** (`src/chunking/fixed_overlap.py`): sliding word-count windows (`window_tokens=100`, `overlap_tokens=20`).
+- **Semantic-boundary** (`src/chunking/semantic.py`): splits between sentences where embedding cosine similarity drops below a threshold, rather than at a fixed size.
+
+Every chunk (base or sub-chunk) now stores:
 ```json
 {
-  "doc_id": "unique_id",
+  "doc_id": "chunk_id",
   "content": "chunk text",
   "language": "en|hi|ta|te|etc",
-  "section": "header hierarchy",
-  "source": "MSMARCO-XI",
-  "confidence": 0.95  // relevance score
+  "parent_id": "the whole-passage chunk_id this came from (self, for base chunks)",
+  "chunking_strategy": "fixed_overlap | semantic_boundary | null (base passage)"
 }
 ```
+`parent_id` is used in `src/retrieval.py::dedupe_by_parent` to collapse a whole passage and its own sub-chunk down to whichever scored higher, if both land in the same top-k set. `chunking_strategy` is surfaced in the API response's `retrieved_documents`/`sources` field, so which strategy contributed to an answer is directly demonstrable, not just present in the code.
 
-**Why?**
-- Filter by language
-- Sort by confidence (prioritize high-quality chunks)
-- Track provenance (which dataset chunk came from)
-- Enable advanced re-ranking later
+**Honest scope note:** `LENGTH_THRESHOLD_TOKENS=100` means most MSMARCO passages (which tend to be short) don't get sub-chunked at all - report the real generated-sub-chunk count from an actual `add_chunking_strategies.py` run in the submission writeup rather than assuming a large number.
 
 ---
 
-### Decision 4: Whoosh over Elasticsearch
+### Decision 4: Whoosh over Elasticsearch (superseded - see note)
+
+**Superseded**: Whoosh was later replaced by `bm25s` (`src/bm25s_service.py`) - Whoosh's per-query disk-segment reopening made it slow even with searcher caching, and it was returning zero results on most natural-language queries. `bm25s` scores as a sparse matmul over a memory-mapped index instead. `src/whoosh_service.py` was removed from the codebase. The reasoning below for ruling out Elasticsearch (heavy, distributed, unnecessary at this scale) still applies to `bm25s`.
 
 **Alternatives**:
 1. Elasticsearch - Powerful but heavy (Java, memory)

@@ -1,0 +1,28 @@
+venv/
+.env
+.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+bm25s_index_full_backup/
+.git/
+
+# ~4.6GB corpus - lives on a Fly volume in production (see fly.toml [mounts]),
+# not baked into the image. A 9.3GB image with this data included consistently
+# failed to start on Fly (host-side image-pull timeout, confirmed via a
+# hello-world image starting instantly on the same app/region/config).
+data/chroma_db/
+data/msmarco-xi/
+bm25s_index_full/
+
+# 4.6GB local llama.cpp GGUF weights - never needed in production (no GPU,
+# local backend dropped via GENERATION_BACKEND_ORDER_OVERRIDE in fly.toml).
+# Its presence was the actual cause of the "No module named 'llama_cpp'"
+# startup crash: GenerationService.__init__ only imports llama_cpp when
+# os.path.exists(LOCAL_LLM_MODEL_PATH) is true, and this file being copied
+# into the image (unexcluded) made that check pass even though the pip
+# package itself is deliberately not installed here.
+models/
+*.gguf
+*.safetensors

@@ -15,6 +15,7 @@ env/
 whoosh_index/
 whoosh_index_full/
 **/bm25s_index_full/
+**/bm25s_index_full_backup/
 **/bm25s_index_pytest/
 **/data/msmarco-xi/
 **/data/chroma_db/

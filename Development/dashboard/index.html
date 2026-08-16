@@ -142,6 +142,7 @@
 
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
 </style>
 </head>
 <body>
@@ -211,12 +212,6 @@
 </div>
 
 <script>
-  // Replaced server-side (see /dashboard route in main_app.py) with the
-  // current RAG_API_KEY. Never hardcode a real key in this file - it's
-  // committed to source control.
-  window.__RAG_API_KEY__ = "__RAG_API_KEY_INJECTED__";
-</script>
-<script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const logEl = $("log");
@@ -232,16 +227,14 @@
   let pendingRequestActive = false;
   let streamingAnswer = "";
 
-  // Injected server-side at request time (see /dashboard in main_app.py).
-  // The dashboard is served by the same process that holds RAG_API_KEY and
-  // is only reachable by whoever can already reach the API - injecting it
-  // here doesn't cross a new trust boundary. It's never typed, and never
-  // written to localStorage/cookies/anywhere the browser persists it.
-  const apiKey = window.__RAG_API_KEY__ || "";
-
+  // The public dashboard connects to /ws/demo, not the key-gated /ws/query -
+  // no RAG_API_KEY is ever needed here (or sent, stored, or rendered), so a
+  // judge can use this page with zero setup. /ws/demo runs the identical
+  // pipeline, gated by a per-IP rate limit server-side instead of a key -
+  // see verify_demo_rate_limit / _check_demo_rate_limit in main_app.py.
   function wsUrl() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${location.host}/ws/query`;
+    return `${proto}://${location.host}/ws/demo`;
   }
 
   function setConnected(isConnected) {
@@ -270,11 +263,6 @@
     setConnected(false);
     connLabel.textContent = "connecting…";
 
-    ws.onopen = () => {
-      // Auth happens over the first message, not the URL - a query-string
-      // api_key would land in server access logs and browser history.
-      ws.send(JSON.stringify({ type: "auth", api_key: apiKey }));
-    };
     ws.onclose = (ev) => {
       setConnected(false);
       pendingRequestActive = false;

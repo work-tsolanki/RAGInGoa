@@ -1,0 +1,454 @@
+{
+  "queries_run": 40,
+  "errors": 0,
+  "hedged_count": 10,
+  "hedge_rate": 0.25,
+  "cache_hit_count": 1,
+  "cache_hit_rate": 0.025,
+  "per_query_results": [
+    {
+      "query": "How to apply for a passport",
+      "lang": "en",
+      "confidence": 0.9864,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 286.0,
+      "wall_ms": 287.0
+    },
+    {
+      "query": "What is a corporation?",
+      "lang": "en",
+      "confidence": 0.9996,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 276.8,
+      "wall_ms": 277.8
+    },
+    {
+      "query": "income tax filing deadline",
+      "lang": "en",
+      "confidence": 0.9862,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 272.1,
+      "wall_ms": 272.1
+    },
+    {
+      "query": "What are voter ID requirements",
+      "lang": "en",
+      "confidence": 0.0701,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 288.4,
+      "wall_ms": 288.4
+    },
+    {
+      "query": "How does GST registration work",
+      "lang": "en",
+      "confidence": 0.9981,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 339.2,
+      "wall_ms": 339.8
+    },
+    {
+      "query": "What is Goa famous for?",
+      "lang": "en",
+      "confidence": 0.0699,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 264.8,
+      "wall_ms": 265.8
+    },
+    {
+      "query": "What is kaju katli?",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 446.8,
+      "wall_ms": 446.8
+    },
+    {
+      "query": "What is barter trade?",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 226.0,
+      "wall_ms": 226.0
+    },
+    {
+      "query": "Tell me about forts in India",
+      "lang": "en",
+      "confidence": 0.9689,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 362.6,
+      "wall_ms": 362.6
+    },
+    {
+      "query": "What historical sites are near Chichen Itza",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 258.2,
+      "wall_ms": 258.2
+    },
+    {
+      "query": "Describe the Udaipur lake palace",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 312.5,
+      "wall_ms": 312.5
+    },
+    {
+      "query": "What are New Orleans beignets famous for",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 249.9,
+      "wall_ms": 249.9
+    },
+    {
+      "query": "What is trigger finger condition",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 234.8,
+      "wall_ms": 235.8
+    },
+    {
+      "query": "How much does diesel fuel cost per gallon",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 304.5,
+      "wall_ms": 305.5
+    },
+    {
+      "query": "What is the standard molar entropy in chemistry",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 279.0,
+      "wall_ms": 279.0
+    },
+    {
+      "query": "What is cornflour made from",
+      "lang": "en",
+      "confidence": 0.9999,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 264.5,
+      "wall_ms": 265.0
+    },
+    {
+      "query": "How much do high school teachers earn on average",
+      "lang": "en",
+      "confidence": 0.9986,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 239.6,
+      "wall_ms": 239.6
+    },
+    {
+      "query": "Who created the Iron Man comic character",
+      "lang": "en",
+      "confidence": 0.9993,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 404.8,
+      "wall_ms": 404.8
+    },
+    {
+      "query": "What degree do you need to become a teacher",
+      "lang": "en",
+      "confidence": 0.9975,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 301.9,
+      "wall_ms": 301.9
+    },
+    {
+      "query": "What is the death's head insignia in military history",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 324.1,
+      "wall_ms": 324.1
+    },
+    {
+      "query": "What is a DBA business registration",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 266.1,
+      "wall_ms": 266.1
+    },
+    {
+      "query": "How is the S-Corp taxed differently from a C-Corp",
+      "lang": "en",
+      "confidence": 0.9998,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 273.1,
+      "wall_ms": 273.1
+    },
+    {
+      "query": "What are the beaches like in Goa",
+      "lang": "en",
+      "confidence": 0.3533,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 242.9,
+      "wall_ms": 243.4
+    },
+    {
+      "query": "What is feni liquor made from",
+      "lang": "en",
+      "confidence": 0.9742,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 226.6,
+      "wall_ms": 227.6
+    },
+    {
+      "query": "Explain the process of GST tax credit claims",
+      "lang": "en",
+      "confidence": 0.9998,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 296.5,
+      "wall_ms": 298.0
+    },
+    {
+      "query": "What documents are needed for a US passport card",
+      "lang": "en",
+      "confidence": 0.0123,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 276.9,
+      "wall_ms": 276.9
+    },
+    {
+      "query": "What is the history of Portuguese architecture in Goa",
+      "lang": "en",
+      "confidence": 0.4707,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 278.1,
+      "wall_ms": 278.6
+    },
+    {
+      "query": "How does bilateral trade differ from multilateral trade",
+      "lang": "en",
+      "confidence": 0.9265,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 370.5,
+      "wall_ms": 370.5
+    },
+    {
+      "query": "What is the significance of Isthmia in Greek mythology",
+      "lang": "en",
+      "confidence": 0.0017,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 282.1,
+      "wall_ms": 282.1
+    },
+    {
+      "query": "Who was Harriet Tubman and what did she do",
+      "lang": "en",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 317.8,
+      "wall_ms": 318.8
+    },
+    {
+      "query": "पासपोर्ट के लिए आवेदन कैसे करें",
+      "lang": "hi",
+      "confidence": 0.9864,
+      "hedged": false,
+      "cache_hit": true,
+      "backend": "cache",
+      "total_ms": 9.3,
+      "wall_ms": 10.3
+    },
+    {
+      "query": "गोवा किस लिए प्रसिद्ध है",
+      "lang": "hi",
+      "confidence": 0.1054,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 531.5,
+      "wall_ms": 532.5
+    },
+    {
+      "query": "आयकर दाखिल करने की अंतिम तिथि क्या है",
+      "lang": "hi",
+      "confidence": 1.0,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 368.5,
+      "wall_ms": 369.5
+    },
+    {
+      "query": "काजू कतली क्या है",
+      "lang": "hi",
+      "confidence": 0.9994,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 343.4,
+      "wall_ms": 343.4
+    },
+    {
+      "query": "भारत में किलों के बारे में बताएं",
+      "lang": "hi",
+      "confidence": 0.9465,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 508.9,
+      "wall_ms": 510.0
+    },
+    {
+      "query": "મતદાર ID માટે શું જરૂરી છે",
+      "lang": "gu",
+      "confidence": 0.0763,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 595.8,
+      "wall_ms": 597.0
+    },
+    {
+      "query": "ગોવા શેના માટે પ્રખ્યાત છે",
+      "lang": "gu",
+      "confidence": 0.9999,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "extractive",
+      "total_ms": 292.6,
+      "wall_ms": 293.1
+    },
+    {
+      "query": "કાજુ કતલી શું છે",
+      "lang": "gu",
+      "confidence": 0.2114,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 4618.8,
+      "wall_ms": 4618.8
+    },
+    {
+      "query": "કંપની એટલે શું",
+      "lang": "gu",
+      "confidence": 0.9962,
+      "hedged": false,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 13885.3,
+      "wall_ms": 13886.3
+    },
+    {
+      "query": "ફેની શું છે",
+      "lang": "gu",
+      "confidence": 0.0834,
+      "hedged": true,
+      "cache_hit": false,
+      "backend": "groq",
+      "total_ms": 504.5,
+      "wall_ms": 506.0
+    }
+  ],
+  "latency_metrics_p50_p70_p100": {
+    "embedding": {
+      "p50": 8.898258209228516,
+      "p70": 10.474920272827148,
+      "p100": 783.799409866333,
+      "mean": 28.336071386569884,
+      "count": 41
+    },
+    "chroma_query": {
+      "p50": 2.000093460083008,
+      "p70": 2.003908157348633,
+      "p100": 1601.6690731048584,
+      "mean": 41.85515642166138,
+      "count": 40
+    },
+    "bm25s_search": {
+      "p50": 3.511190414428711,
+      "p70": 4.004955291748047,
+      "p100": 7.27081298828125,
+      "mean": 3.831690549850464,
+      "count": 40
+    },
+    "generation": {
+      "p50": 260.8757019042969,
+      "p70": 308.50887298583984,
+      "p100": 13851.27305984497,
+      "mean": 727.6160061359406,
+      "count": 40
+    },
+    "grounding_check": {
+      "p50": 18.504619598388672,
+      "p70": 23.55217933654785,
+      "p100": 195.62458992004395,
+      "mean": 25.246667861938477,
+      "count": 40
+    },
+    "merge_results": {
+      "p50": 0.0,
+      "p70": 0.0,
+      "p100": 0.9996891021728516,
+      "mean": 0.02563305390186799,
+      "count": 39
+    }
+  }
+}

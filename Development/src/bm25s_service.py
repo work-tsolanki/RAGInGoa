@@ -36,6 +36,12 @@ class Bm25sService:
                 "content": chunk["content"],
                 "language": chunk.get("language", "en"),
                 "section": chunk.get("metadata", {}).get("section", ""),
+                # parent_id/chunking_strategy: see src/chunking/ - default
+                # parent_id to the doc's own id so whole-passage entries
+                # (the vast majority, pre-dating any sub-chunking) are their
+                # own parent in retrieval.py's dedupe_by_parent.
+                "parent_id": chunk.get("metadata", {}).get("parent_id", chunk["doc_id"]),
+                "chunking_strategy": chunk.get("metadata", {}).get("chunking_strategy"),
             }
             for chunk in chunks
         ]
@@ -84,6 +90,8 @@ class Bm25sService:
                     "score": float(score),
                     "language": doc.get("language", "en"),
                     "section": doc.get("section", ""),
+                    "parent_id": doc.get("parent_id", doc["doc_id"]),
+                    "chunking_strategy": doc.get("chunking_strategy"),
                 })
 
         except Exception as e:

@@ -26,15 +26,17 @@ sarvamai==0.1.30                      # Sarvam AI SDK - realtime STT streaming (
 # ============================================================================
 fastapi==0.104.0                      # Web framework
 uvicorn==0.24.0                       # ASGI server
-httpx==0.25.0                         # HTTP client
-pydantic==2.4.2                       # Data validation (>=2.4.2 required by fastapi==0.104.0)
+httpx==0.28.1                         # HTTP client (0.25.0 conflicts with chromadb==1.5.9's httpx>=0.27.0 requirement -
+                                       # bumped to match what's actually installed and tested in the local venv)
+pydantic==2.13.4                      # Data validation (2.4.2 conflicts with sarvamai==0.1.30's pydantic-core>=2.18.2 -
+                                       # bumped to match what's actually installed and tested in the local venv)
 python-multipart==0.0.6               # File upload support
 
 # ============================================================================
 # LLM APIs
 # ============================================================================
 anthropic==0.7.0                      # Claude API
-requests==2.31.0                      # HTTP requests
+requests==2.34.2                      # HTTP requests (synced to local venv's resolved version)
 llama-cpp-python                      # Local LLM inference (GGUF models, CPU/GPU).
                                        # For GPU: build from source with CUDA -
                                        # see Markdown/GPU_SETUP.md.
@@ -62,7 +64,7 @@ pytest-cov==4.1.0                     # Coverage reports
 # Utilities
 # ============================================================================
 python-dotenv==1.0.0                  # Environment variables
-tqdm==4.66.0                          # Progress bars
+tqdm==4.70.0                          # Progress bars (synced to local venv's resolved version)
 pandas==2.1.0                         # Data manipulation
 pyyaml==6.0                           # YAML parsing
 

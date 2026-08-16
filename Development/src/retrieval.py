@@ -25,6 +25,35 @@ def _extract_language(result: Dict) -> str:
     return result.get("language") or result.get("metadata", {}).get("language", "")
 
 
+def _extract_field(result: Dict, field: str, default=None):
+    """Same dual-shape handling as _extract_language, generalized: dense
+    (Chroma) results carry extra fields under metadata; sparse (bm25s)
+    results carry them top-level (see src/bm25s_service.py)."""
+    if field in result:
+        return result[field]
+    return result.get("metadata", {}).get(field, default)
+
+
+def dedupe_by_parent(candidates: List[Dict]) -> List[Dict]:
+    """Collapses a whole passage and any of its own sub-chunks (see
+    src/chunking/) down to whichever single one scored highest, when both
+    appear in the same candidate set - otherwise a long passage could
+    occupy multiple top-k slots with near-duplicate content under different
+    chunk_ids. A no-op today: every existing passage's parent_id defaults
+    to its own doc_id (see _extract_field's default in merge_and_rank),
+    so nothing collides until real sub-chunks are actually indexed."""
+    best_by_parent = {}
+    order = []
+    for c in candidates:
+        parent = c["parent_id"]
+        if parent not in best_by_parent:
+            order.append(parent)
+            best_by_parent[parent] = c
+        elif c["final_score"] > best_by_parent[parent]["final_score"]:
+            best_by_parent[parent] = c
+    return [best_by_parent[p] for p in order]
+
+
 @track_latency("merge_results")
 def merge_and_rank(
     dense_results: List[Dict],
@@ -58,6 +87,8 @@ def merge_and_rank(
             "dense_score": result["score"],
             "bm25_score": 0.0,
             "language": _extract_language(result),
+            "parent_id": _extract_field(result, "parent_id", doc_id),
+            "chunking_strategy": _extract_field(result, "chunking_strategy"),
             "metadata": result.get("metadata", {})
         }
 
@@ -70,6 +101,8 @@ def merge_and_rank(
                 merged[doc_id]["content"] = result.get("content", "")
             if not merged[doc_id]["language"]:
                 merged[doc_id]["language"] = _extract_language(result)
+            if merged[doc_id]["chunking_strategy"] is None:
+                merged[doc_id]["chunking_strategy"] = _extract_field(result, "chunking_strategy")
         else:
             merged[doc_id] = {
                 "doc_id": doc_id,
@@ -77,6 +110,8 @@ def merge_and_rank(
                 "dense_score": 0.0,
                 "bm25_score": result["score"],
                 "language": _extract_language(result),
+                "parent_id": _extract_field(result, "parent_id", doc_id),
+                "chunking_strategy": _extract_field(result, "chunking_strategy"),
                 "metadata": result.get("metadata", {})
             }
 
@@ -91,6 +126,7 @@ def merge_and_rank(
         key=lambda x: x["final_score"],
         reverse=True
     )
+    candidates = dedupe_by_parent(candidates)
 
     if target_language:
         same_lang = [d for d in candidates if d["language"] == target_language]

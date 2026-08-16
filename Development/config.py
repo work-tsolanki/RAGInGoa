@@ -3,6 +3,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Defaults are relative paths for local dev. In production (Fly), these point
+# at a mounted volume (see fly.toml's [mounts] + [env]) - the ~4.6GB corpus
+# lives on the volume, not baked into the image, since a 9GB image proved too
+# large to reliably pull onto a Fly host within its provisioning timeout.
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma_db")
+BM25S_INDEX_DIR = os.getenv("BM25S_INDEX_DIR", "bm25s_index_full")
+
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "mock")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "mock")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "mock")
@@ -39,7 +46,14 @@ LOCAL_LLM_N_GPU_LAYERS = int(os.getenv("LOCAL_LLM_N_GPU_LAYERS", "-1"))
 # request fails before any tokens are streamed back.
 GROQ_MODEL = "llama-3.1-8b-instant"
 GROQ_MAX_TOKENS = 200  # matches LOCAL_LLM_MAX_TOKENS - same model, same answer-length expectations
-GROQ_TEMPERATURE = 0.3  # matches local generation's temperature
+GROQ_TEMPERATURE = 0.1  # lowered from 0.3 (Phase 3 hardening): the live deploy's own
+                         # benchmark caught the same query ("How to apply for a passport")
+                         # scoring grounded (0.986) locally and hedged (0.352) on a repeat
+                         # run - phrasing variance from temperature feeding into the
+                         # grounding-score jitter, not a retrieval difference. Lower temp
+                         # trades a little answer-phrasing variety for hedge consistency,
+                         # which matters more when the same question can be asked twice
+                         # live by a judge.
 
 # Cerebras: originally planned as a same-weights-different-silicon speed
 # test vs Groq (both running Llama-3.1-8B). That model isn't available on
@@ -100,6 +114,24 @@ ANSWER_CACHE_TTL_SECONDS = 86400  # 24h - answers about deadlines/rules can go s
 # check). The remaining ~4 confidently-wrong-answer risk is accepted and
 # documented, not silently ignored - would need a retrieval-relevance gate
 # or a better grounding check to close, not a threshold tweak.
+#
+# UPDATE (grounding-gate rollout, see Markdown/grounding_gate_and_chunking_
+# implementation.md): as of this change, this threshold also gates the
+# *returned* answer, not just caching (main_app.py - below it, both /query
+# and the WS pipeline replace a sub-threshold answer with
+# guardrails.build_low_grounding_response() instead of returning it as-is).
+# Live-testing that rollout surfaced a real, since-accepted tradeoff: this
+# calibration was run against the OLD, more literal/extractive prompt.
+# generation_service.py's later natural-output rewrite (deliberately) makes
+# answers more paraphrased, which lowers cross-encoder grounding scores for
+# some genuinely-correct answers purely from reduced lexical overlap with
+# the source (e.g. a real "how to apply for a passport" answer dropped from
+# ~0.999 under the old literal-copy style to ~0.35 paraphrased, and now
+# hedges under this threshold). Decision: leave the threshold as-is rather
+# than re-calibrate against the new prompt style - re-run
+# scripts/analyze_grounding_calibration.py against natural-output-style
+# answers first if false-hedges on correct answers become a real problem,
+# rather than guessing a new number.
 ANSWER_CACHE_MIN_GROUNDING = 0.7
 
 # Semantic cache: fuzzy match on query embedding similarity, checked before

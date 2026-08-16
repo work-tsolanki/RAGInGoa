@@ -8,6 +8,18 @@ class ChromaService:
 
     def __init__(self, collection_name: str = "hhgoa_rag", persist_dir: str = "data/chroma_db"):
         self.client = chromadb.PersistentClient(path=persist_dir)
+        # TODO (logged, not urgent): no explicit "hnsw:search_ef" override
+        # here, so this runs on Chroma's low default ef_search. After the
+        # Aug 2026 chunking pass grew hhgoa_rag_full from 743,739 to
+        # 858,768 entries, a previously-reliable query ("What is Goa famous
+        # for?") started returning irrelevant results from dense search -
+        # none of the bad results were new sub-chunks, which points at
+        # ef_search coverage becoming proportionally thinner as the corpus
+        # grew, not a chunking-content problem. The fix to reach for when
+        # this gets revisited is raising "hnsw:search_ef" on this
+        # collection and benchmarking the recall improvement against the
+        # added query latency (ef_search trades one for the other) - not
+        # re-chunking or re-embedding anything.
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"}

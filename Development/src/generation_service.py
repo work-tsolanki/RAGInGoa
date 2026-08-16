@@ -4,6 +4,7 @@ import queue
 import re
 import sys
 import threading
+import time
 
 from config import (
     DEBUG, ANTHROPIC_API_KEY, GROQ_API_KEY, GROQ_MODEL, GROQ_MAX_TOKENS,
@@ -11,7 +12,7 @@ from config import (
     CEREBRAS_MAX_TOKENS, CEREBRAS_TEMPERATURE, GENERATION_BACKEND_ORDER,
     LOCAL_LLM_MODEL_PATH, LOCAL_LLM_N_CTX, LOCAL_LLM_MAX_TOKENS, LOCAL_LLM_N_GPU_LAYERS,
 )
-from src.latency_tracker import track_latency
+from src.latency_tracker import track_latency, get_tracker
 
 # On Windows, llama_cpp's CUDA build (ggml-cuda.dll) dynamically links against
 # cublas64_*.dll/cudart64_*.dll, which live under CUDA_PATH\bin\x64 (CUDA 13+
@@ -238,6 +239,18 @@ class GenerationService:
         the ordered fallback chain. Falls back to a single extractive
         "delta" if every backend fails, same as generate() - callers don't
         need to special-case that.
+
+        Records into the same "generation" latency_tracker bucket as
+        generate() (see get_tracker/@track_latency), but manually rather
+        than via the decorator - @track_latency wraps a call-and-return
+        function; calling an async generator function just returns the
+        generator object without running any of the body, so the decorator
+        alone measures ~0ms here and never captures real WS-pipeline
+        generation time. This was the specific gap the Aug 2026 spec-
+        compliance audit found: /metrics' "generation" percentiles had
+        only 1 sample despite dozens of real WS queries, because this
+        function - what all real dashboard/voice traffic actually calls -
+        wasn't tracked at all.
         """
         if not context:
             self.last_backend = None
@@ -248,6 +261,7 @@ class GenerationService:
         max_tokens = _max_tokens_for_language(language, GROQ_MAX_TOKENS)
         backend_used = None
         got_any = False
+        start = time.time()
         try:
             async for item in self._bridge_sync_generator(self._generate_with_fallback(prompt, max_tokens=max_tokens)):
                 got_any = True
@@ -255,6 +269,8 @@ class GenerationService:
                 yield item
         except Exception:
             pass  # _generate_with_fallback only raises when got_any is still False - handled below
+        finally:
+            get_tracker().record("generation", (time.time() - start) * 1000)
 
         if got_any:
             self.last_backend = backend_used
@@ -443,7 +459,7 @@ class GenerationService:
         with self.claude_client.messages.stream(
             model="claude-3-haiku-20240307",
             max_tokens=max_tokens or 200,
-            temperature=temperature if temperature is not None else 0.3,
+            temperature=temperature if temperature is not None else 0.1,  # matches GROQ_TEMPERATURE - see config.py
             messages=[{"role": "user", "content": prompt}],
         ) as stream:
             for text in stream.text_stream:

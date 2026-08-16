@@ -1,0 +1,112 @@
+[
+  {
+    "query": "What are voter ID requirements",
+    "lang": "en",
+    "confidence": 0.3168,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 291.5,
+    "wall_ms": 291.5,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "What is Goa famous for?",
+    "lang": "en",
+    "confidence": 0.0699,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 254.9,
+    "wall_ms": 254.9,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "What are the beaches like in Goa",
+    "lang": "en",
+    "confidence": 0.0005,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 258.1,
+    "wall_ms": 258.1,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "What documents are needed for a US passport card",
+    "lang": "en",
+    "confidence": 0.3425,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 276.5,
+    "wall_ms": 276.5,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "What is the history of Portuguese architecture in Goa",
+    "lang": "en",
+    "confidence": 0.0028,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 293.7,
+    "wall_ms": 294.7,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "What is the significance of Isthmia in Greek mythology",
+    "lang": "en",
+    "confidence": 0.0017,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 284.6,
+    "wall_ms": 285.1,
+    "answer": "I couldn't find information in the available sources that confidently answers this question. Could you rephrase it, or ask about a related topic?"
+  },
+  {
+    "query": "गोवा किस लिए प्रसिद्ध है",
+    "lang": "hi",
+    "confidence": 0.1514,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 476.0,
+    "wall_ms": 476.0,
+    "answer": "मुझे उपलब्ध जानकारी में इस प्रश्न का विश्वसनीय उत्तर नहीं मिला। कृपया प्रश्न को दोबारा पूछें या किसी संबंधित विषय के बारे में पूछें।"
+  },
+  {
+    "query": "મતદાર ID માટે શું જરૂરી છે",
+    "lang": "gu",
+    "confidence": 0.2885,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 631.3,
+    "wall_ms": 631.8,
+    "answer": "મને ઉપલબ્ધ માહિતીમાં આ પ્રશ્નનો વિશ્વસનીય જવાબ મળ્યો નથી. કૃપા કરીને પ્રશ્નને ફરીથી પૂછો અથવા સંબંધિત વિષય વિશે પૂછો."
+  },
+  {
+    "query": "કાજુ કતલી શું છે",
+    "lang": "gu",
+    "confidence": 0.2782,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 3652.4,
+    "wall_ms": 3653.4,
+    "answer": "મને ઉપલબ્ધ માહિતીમાં આ પ્રશ્નનો વિશ્વસનીય જવાબ મળ્યો નથી. કૃપા કરીને પ્રશ્નને ફરીથી પૂછો અથવા સંબંધિત વિષય વિશે પૂછો."
+  },
+  {
+    "query": "કંપની એટલે શું",
+    "lang": "gu",
+    "confidence": 0.9962,
+    "hedged": false,
+    "backend": "cache",
+    "total_ms": 8.0,
+    "wall_ms": 8.0,
+    "answer": "કંપની એટલે લોકોનું એક જૂથ જે એક બોડીમાં ભળી જાય છે અથવા એક બોડી તરીકે કાર્ય કરે છે. આ એક કોર્પોરેશનની વ્યાખ્યા છે જેની કોઈ પણ માલિકી કોર્પોરેશનની નથી - હાસ પ્રમુખ/નિર્દેશક, સચિવ, અથવા નાણાકીય અધિકારી."
+  },
+  {
+    "query": "ફેની શું છે",
+    "lang": "gu",
+    "confidence": 0.0763,
+    "hedged": true,
+    "backend": "groq",
+    "total_ms": 565.5,
+    "wall_ms": 566.6,
+    "answer": "મને ઉપલબ્ધ માહિતીમાં આ પ્રશ્નનો વિશ્વસનીય જવાબ મળ્યો નથી. કૃપા કરીને પ્રશ્નને ફરીથી પૂછો અથવા સંબંધિત વિષય વિશે પૂછો."
+  }
+]

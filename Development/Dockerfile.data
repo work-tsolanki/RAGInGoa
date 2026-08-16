@@ -1,0 +1,3 @@
+FROM alpine:latest
+COPY data/chroma_db /srv/data/chroma_db
+COPY bm25s_index_full /srv/data/bm25s_index_full
