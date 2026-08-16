@@ -4,227 +4,277 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hacker House Goa — RAGInGoa</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E9E0D1'/%3E%3Ccircle cx='16' cy='14' r='6' fill='%23E0521C'/%3E%3Crect x='7' y='22' width='18' height='4' rx='2' fill='%232A2320'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230B6839'/%3E%3Ccircle cx='16' cy='17' r='7' fill='%23FEE101'/%3E%3Crect y='24' width='32' height='8' fill='%23FFFBE8'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;600;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Sora:wght@300;400;600;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --bg:#F5F3E1; --sunk:#EDEBD6; --ink:#08402A; --ink2:#5C7A63;
-    --accent:#EE0080; --on-accent:#FBFAEF; --accent-ink:#C10068;
-    --green:#086838; --on-green:#FBFAEF; --green-ink:#086838;
-    --yellow:#F8E000; --on-yellow:#08402A; --yellow-ink:#7A6400;
-    --sh-d:#D8D5BC; --sh-l:#FFFFF8;
-    --nm:8px 8px 18px var(--sh-d), -8px -8px 18px var(--sh-l);
-    --nm-sm:4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l);
-    --nm-in:inset 5px 5px 12px var(--sh-d), inset -5px -5px 12px var(--sh-l);
-    --nm-in-sm:inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l);
+    --green:#0B6839; --green-deep:#084A29;
+    --cream:#FFFBE8; --cream-dim:#FFF3CE;
+    --pink:#FF0080; --pink-ink:#C2005F; --on-pink:#FFFFFF;
+    /* --pink-on-band: pink TEXT set directly on a full-green band (the hero
+       and footer bookends). The brand's raw --pink measures only ~1.8:1 on
+       --green — well under the 3:1 large-text floor — so band text uses this
+       lighter tint instead; band FILLS (buttons, ribbons) are unaffected. */
+    --pink-on-band:#FFC2E0;
+    --yellow:#FEE101; --yellow-ink:#7A6000; --on-yellow:#0B3D22;
+    --black:#000000; --on-black:#FFFBE8;
+    --bg:var(--cream); --panel:#FFFFFF; --panel2:var(--cream-dim);
+    --ink:var(--green); --card-ink:var(--green);
+    /* --ink2 is fixed (not themed): nearly every secondary-text use sits
+       inside a cream/white card regardless of theme, since the brand's
+       "night" mode swaps the page ground, not the card material. */
+    --ink2:#4C6B57;
+    --border:rgba(11,104,57,0.16); --border-strong:rgba(11,104,57,0.30);
+    --shadow:0 10px 24px rgba(11,60,35,.14), 0 2px 4px rgba(11,60,35,.08);
+    --shadow-sm:0 4px 10px rgba(11,60,35,.12);
     --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:72px;
-    --fx:11px; --fs:13px; --fm:15px; --fb:17px; --fl:21px; --f2:28px; --f3:40px;
-    --r1:10px; --r2:16px; --r3:26px; --r4:999px;
-    --mono:'IBM Plex Mono',monospace;
+    --fx:11px; --fs:13px; --fm:15px; --fb:17px; --fl:21px; --f2:30px; --f3:44px;
+    --r1:8px; --r2:16px; --r3:22px; --r4:999px;
+    --mono:'IBM Plex Mono',monospace; --sans:'Sora',system-ui,sans-serif; --serif:'Rozha One',Georgia,serif;
   }
   :root[data-theme="dark"]{
-    --bg:#3A3A34; --sunk:#31312C; --ink:#EDEBD8; --ink2:#A5A395;
-    --accent:#FF2D96; --on-accent:#241019; --accent-ink:#FF80BC;
-    --green:#7ED3A4; --on-green:#1C2A21; --green-ink:#7ED3A4;
-    --yellow:#F8E000; --on-yellow:#2A2A24; --yellow-ink:#F8E000;
-    --sh-d:#232320; --sh-l:#4C4C44;
+    --bg:var(--green); --panel:var(--cream); --panel2:#FFF6D6;
+    --ink:var(--cream); --card-ink:var(--green);
+    --border:rgba(255,251,232,0.22); --border-strong:rgba(255,251,232,0.38);
+    --shadow:0 10px 26px rgba(0,0,0,.30), 0 2px 4px rgba(0,0,0,.20);
+    --shadow-sm:0 4px 10px rgba(0,0,0,.24);
+    /* Night mode flips both bookend bands to cream — pink text on them needs
+       the darker on-cream tint, not the light on-green one. */
+    --pink-on-band:var(--pink-ink);
   }
   html,body{margin:0;padding:0;background:var(--bg);}
   *{box-sizing:border-box;}
   button,input,select,textarea{font:inherit;color:inherit;}
-  ::selection{background:var(--accent);color:var(--on-accent);}
-  a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;}
+  ::selection{background:var(--pink);color:var(--on-pink);}
+  a{color:var(--pink-ink);text-decoration:underline;text-underline-offset:3px;}
   a:hover{color:var(--ink);}
-  :focus-visible{outline:3px solid var(--accent);outline-offset:4px;}
+  :focus-visible{outline:2px solid var(--pink);outline-offset:3px;}
   input::placeholder{color:var(--ink2);opacity:1;}
-  button{transition:box-shadow 140ms ease;}
+  button{transition:background-color 140ms ease, border-color 140ms ease, transform 140ms ease;-webkit-tap-highlight-color:transparent;}
   @keyframes hhblink{0%,49%{opacity:1}50%,100%{opacity:0}}
-  @keyframes hhrise{0%{transform:translateY(10px) scale(0.97);opacity:0}100%{transform:none;opacity:1}}
+  @keyframes hhrise{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
+  @keyframes sunpulse{0%{stroke-opacity:.9;stroke-width:2;r:34}70%{stroke-opacity:0;stroke-width:.5;r:70}100%{stroke-opacity:0;r:70}}
+  /* The verdict lands like a rubber stamp hitting paper — the brand's own
+     badge language (RUNNING / RESULTS OUT), reused as the answer's arrival. */
+  @keyframes stamp-land{0%{transform:scale(1.5) rotate(-9deg);opacity:0}55%{transform:scale(0.96) rotate(-1deg);opacity:1}100%{transform:scale(1) rotate(-2deg);opacity:1}}
+  @keyframes rule-draw{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+  @keyframes cell-light{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes press-pulse{0%{transform:scale(1)}40%{transform:scale(.94)}100%{transform:scale(1)}}
   @media (prefers-reduced-motion: reduce){*{animation-duration:1ms !important;animation-iteration-count:1 !important;transition-duration:1ms !important;}}
   ::-webkit-scrollbar{width:10px;height:10px;}
-  ::-webkit-scrollbar-thumb{background:var(--sh-d);border-radius:var(--r4);}
-  body{background:var(--bg);color:var(--ink);font-family:Sora,system-ui,sans-serif;font-size:var(--fb);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  ::-webkit-scrollbar-track{background:var(--panel2);}
+  ::-webkit-scrollbar-thumb{background:var(--pink);border-radius:var(--r4);}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--fb);line-height:1.5;-webkit-font-smoothing:antialiased;}
 
   .wrap{max-width:1180px;margin:0 auto;padding:0 max(var(--s4), env(safe-area-inset-right)) 0 max(var(--s4), env(safe-area-inset-left));}
-  .pill{border-radius:var(--r4);font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;}
-  .card-raised{background:var(--bg);box-shadow:var(--nm);border-radius:var(--r3);}
-  .card-sunk{background:var(--bg);box-shadow:var(--nm-in);border-radius:var(--r3);}
-  .btn-nm{background:var(--bg);border:none;box-shadow:var(--nm-sm);border-radius:var(--r4);cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;padding:10px 18px;display:flex;align-items:center;gap:8px;}
-  .btn-nm:hover{box-shadow:var(--nm-in-sm);}
+  .label{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.13em;text-transform:uppercase;}
+  .panel{background:var(--panel);color:var(--card-ink);border-radius:var(--r2);box-shadow:var(--shadow);}
+  .panel-flat{background:var(--panel2);color:var(--card-ink);border-radius:var(--r1);}
+  .pill{border-radius:var(--r4);}
+
+  .xdivider{display:flex;flex-wrap:wrap;gap:6px;overflow:hidden;height:14px;color:rgba(11,104,57,.4);font-family:var(--mono);font-size:12px;line-height:14px;user-select:none;}
+  :root[data-theme="dark"] .xdivider{color:rgba(255,251,232,.4);}
+  .xdivider span{flex:none;}
+
+  .btn{background:var(--panel);color:var(--card-ink);border:2px solid var(--green);border-radius:var(--r4);cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;font-weight:600;padding:10px 18px;display:flex;align-items:center;gap:8px;}
+  :root[data-theme="dark"] .btn{border-color:var(--panel);}
+  .btn:hover{background:var(--pink);border-color:var(--pink);color:var(--on-pink);}
 
   header.hh{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);justify-content:space-between;padding:var(--s5) 0 0;}
-  .brand{display:flex;align-items:center;gap:var(--s3);background:var(--bg);box-shadow:var(--nm-sm);border-radius:var(--r4);padding:8px 16px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;}
-  .brand b{background:var(--accent);color:var(--on-accent);border-radius:var(--r4);padding:4px 10px;font-weight:600;box-shadow:var(--nm-sm);}
+  .brand{display:flex;align-items:center;gap:var(--s3);border:2px solid var(--green);border-radius:var(--r4);padding:7px 8px 7px 16px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;background:var(--panel);color:var(--card-ink);}
+  :root[data-theme="dark"] .brand{border-color:var(--panel);}
+  .brand b{background:var(--yellow);color:var(--on-yellow);border-radius:var(--r4);padding:5px 12px;font-weight:700;}
   .brand span{color:var(--ink2);}
+  .header-actions{display:flex;gap:var(--s2);}
 
-  .how-panel{margin:var(--s4) 0 0;background:var(--bg);box-shadow:var(--nm-in);border-radius:var(--r3);padding:var(--s5);display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s5);animation:hhrise 220ms ease both;}
-  .how-title{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);}
+  .how-panel{margin:var(--s4) 0 0;padding:var(--s5);display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s5);animation:hhrise 200ms ease both;}
+  .how-title{margin-bottom:var(--s2);color:var(--ink2);}
   .how-item{display:flex;gap:var(--s3);}
-  .how-num{font-family:var(--mono);font-weight:600;color:var(--accent);flex:none;}
+  .how-num{font-family:var(--serif);font-weight:400;color:var(--pink-ink);flex:none;font-size:1.2em;}
 
-  .hero{padding:var(--s7) 0 var(--s6);display:flex;flex-wrap:wrap;gap:var(--s7);align-items:flex-start;}
-  .hero-left{flex:6 1 420px;min-width:0;}
-  .kicker{display:inline-block;background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r4);padding:6px 14px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.18em;text-transform:uppercase;color:var(--ink2);margin-bottom:var(--s5);}
-  h1.hh{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(48px,10vw,140px);line-height:0.88;letter-spacing:-0.02em;margin:0;}
+  /* ---- hero (green band, brand hero grammar) ---- */
+  .hero-band{background:var(--green);color:var(--cream);border-radius:var(--r3);margin-top:var(--s5);padding:var(--s7) var(--s6) var(--s6);position:relative;overflow:hidden;}
+  :root[data-theme="dark"] .hero-band{background:var(--cream-dim);color:var(--green);}
+  .hero{position:relative;display:flex;flex-wrap:wrap;gap:var(--s7);align-items:center;}
+  .hero-left{flex:6 1 380px;min-width:0;position:relative;z-index:2;}
+  h1.hh{font-family:var(--serif);font-weight:400;font-size:clamp(40px,8.4vw,96px);line-height:0.94;letter-spacing:-0.01em;margin:0;text-transform:uppercase;}
   h1.hh span{display:block;}
-  h1.hh .goa{position:relative;color:var(--accent);font-style:italic;}
-  .devanagari-tag{display:inline-block;vertical-align:0.62em;margin-left:0.16em;font-family:Sora,sans-serif;font-style:normal;font-size:0.14em;font-weight:600;letter-spacing:0;background:var(--yellow);color:var(--on-yellow);box-shadow:var(--nm-sm);border-radius:var(--r4);padding:0.35em 0.8em;transform:rotate(-3deg);}
-  .tagline{font-size:var(--fl);line-height:1.4;max-width:32ch;margin:var(--s6) 0 0;font-weight:300;}
+  h1.hh .goa{color:var(--pink-on-band);}
+  .tagline{font-size:var(--fl);line-height:1.5;max-width:34ch;margin:var(--s5) 0 0;font-weight:400;opacity:.92;}
   .hero-badges{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s5);}
-  .ribbon{display:inline-flex;align-items:center;gap:9px;background:var(--yellow);color:var(--on-yellow);box-shadow:var(--nm-sm);border-radius:var(--r4);padding:10px 20px;font-family:var(--mono);font-size:var(--fm);font-weight:600;letter-spacing:0.04em;transform:rotate(-1.2deg);}
+  .hero-note{opacity:.75;}
+  .ribbon{display:inline-flex;align-items:center;gap:9px;background:var(--yellow);color:var(--on-yellow);border-radius:var(--r4);padding:10px 20px;font-family:var(--mono);font-size:var(--fm);font-weight:700;letter-spacing:0.02em;}
 
-  .stats-card{flex:3 1 260px;min-width:0;margin-top:var(--s7);padding:var(--s5);}
-  .stats-title{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:var(--s4);display:flex;align-items:center;gap:8px;}
-  .live-dot{width:8px;height:8px;border-radius:var(--r4);background:var(--green);box-shadow:var(--nm-sm);flex:none;}
+  .sun-art{position:absolute;left:58%;top:50%;transform:translate(-50%,-50%);width:min(30vw,300px);aspect-ratio:1;opacity:.9;z-index:1;pointer-events:none;}
+  .sun-art svg{width:100%;height:100%;display:block;}
+  #sun-pulse{opacity:0;}
+  #sun-pulse.fire circle{animation:sunpulse 900ms cubic-bezier(.2,.7,.3,1);}
+
+  .stats-card{flex:3 1 260px;min-width:0;padding:var(--s5);z-index:2;background:var(--cream);color:var(--green);}
+  .stats-title{margin-bottom:var(--s4);display:flex;align-items:center;gap:8px;color:var(--ink2);}
+  .live-dot{width:8px;height:8px;border-radius:var(--r4);background:var(--pink);flex:none;}
   .live-dot.off{background:var(--ink2);}
-  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);}
-  .stat-box{box-shadow:var(--nm-in-sm);border-radius:var(--r2);padding:var(--s4);}
-  .stat-num{font-family:'Instrument Serif',serif;font-size:var(--f3);line-height:1;}
-  .stat-label{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2);}
+  .stats-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s3);}
+  .stat-box{min-width:0;border:1.5px dashed var(--green);border-radius:var(--r1);padding:var(--s4);}
+  .stat-num{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3.6vw,var(--f3));line-height:1;overflow-wrap:break-word;}
+  .stat-label{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);margin-top:4px;}
+  .stats-footnote{font-family:var(--mono);font-size:10px;color:var(--ink2);margin-top:var(--s3);}
 
   .qbar-wrap{position:sticky;top:0;z-index:20;background:var(--bg);padding:calc(var(--s4) + env(safe-area-inset-top)) 0 var(--s3);}
-  .qbar{display:flex;align-items:center;gap:var(--s2);background:var(--bg);box-shadow:var(--nm-in);border-radius:var(--r3);padding:10px 12px;}
-  #query-input{flex:1;min-width:0;background:none;border:none;padding:12px 10px;font-size:var(--fm);}
-  #mic-btn{flex:none;display:flex;align-items:center;gap:9px;border:none;border-radius:var(--r4);padding:0 20px;min-height:52px;cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;font-weight:600;background:var(--bg);color:var(--ink);box-shadow:var(--nm-sm);}
-  #mic-btn.recording{background:var(--accent);color:var(--on-accent);box-shadow:var(--nm-in-sm);}
-  #send-btn{flex:none;display:flex;align-items:center;justify-content:center;border:none;background:var(--accent);color:var(--on-accent);box-shadow:var(--nm-sm);border-radius:var(--r4);width:52px;height:52px;cursor:pointer;}
-  #send-btn:hover{box-shadow:var(--nm-in-sm);}
-  #send-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .qbar{display:flex;align-items:center;gap:var(--s2);background:var(--panel);color:var(--card-ink);border:2px solid var(--green);border-radius:var(--r4);padding:6px 6px 6px 20px;box-shadow:var(--shadow);}
+  :root[data-theme="dark"] .qbar{border-color:var(--panel);}
+  #query-input{flex:1;min-width:0;background:none;border:none;padding:12px 6px;font-size:var(--fm);font-family:var(--sans);color:var(--card-ink);}
+  #mic-btn{flex:none;display:flex;align-items:center;gap:9px;border:2px solid var(--pink);border-radius:var(--r4);padding:0 20px;min-height:50px;cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;font-weight:700;background:var(--panel);color:var(--pink-ink);}
+  #mic-btn:hover{background:var(--pink);color:var(--on-pink);}
+  #mic-btn.recording{background:var(--pink);color:var(--on-pink);border-style:dashed;}
+  #mic-btn.pressed{animation:press-pulse 220ms cubic-bezier(0.16,1,0.3,1);}
+  #send-btn{flex:none;display:flex;align-items:center;justify-content:center;border:2px dashed var(--green-deep);background:var(--yellow);color:var(--on-yellow);border-radius:var(--r4);width:50px;height:50px;cursor:pointer;}
+  #send-btn:hover{filter:brightness(1.05);}
+  #send-btn:disabled{opacity:.4;cursor:not-allowed;}
 
   .qbar-row2{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;margin-top:var(--s3);}
-  .lang-label{display:flex;align-items:center;gap:var(--s2);font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;color:var(--ink2);}
-  #mic-language{background:var(--bg);border:none;box-shadow:var(--nm-sm);border-radius:var(--r4);padding:7px 12px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.06em;text-transform:uppercase;color:var(--ink);cursor:pointer;}
-  .conn-badge{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:6px;}
+  .lang-label{display:flex;align-items:center;gap:var(--s2);font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2);}
+  #mic-language{background:var(--panel);border:1.5px solid var(--border-strong);border-radius:var(--r4);padding:7px 12px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.04em;text-transform:uppercase;color:var(--card-ink);cursor:pointer;}
+  .conn-badge{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:6px;}
 
-  .meter-box{margin-top:var(--s3);background:var(--bg);box-shadow:var(--nm-in);border-radius:var(--r2);padding:var(--s3) var(--s4);display:none;align-items:center;gap:var(--s4);}
+  .meter-box{margin-top:var(--s3);border:1.5px dashed var(--pink);border-radius:var(--r1);padding:var(--s3) var(--s4);display:none;align-items:center;gap:var(--s4);background:var(--panel2);}
   .meter-box.show{display:flex;}
-  .meter-bars{display:flex;align-items:center;gap:3px;height:38px;flex:1;min-width:0;}
-  .meter-bar{flex:1;min-width:3px;height:100%;border-radius:var(--r4);background:var(--accent);box-shadow:var(--nm-sm);transform:scaleY(0.08);transform-origin:bottom;transition:transform 70ms linear;}
-  .meter-label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);font-weight:600;white-space:nowrap;}
 
-  .phases{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3);font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;}
-  .phase-pill{border-radius:var(--r4);padding:7px 14px;background:var(--bg);color:var(--ink2);box-shadow:var(--nm-sm);opacity:.55;}
-  .phase-pill.past{box-shadow:var(--nm-in-sm);opacity:1;}
-  .phase-pill.now{background:var(--accent);color:var(--on-accent);font-weight:600;box-shadow:var(--nm-sm);opacity:1;}
+  /* System notice — reuses the DECLINED card's black/dashed "closed" language
+     for connection and permission failures, so a silent backend never leaves
+     the interface saying nothing. Never used for answer states. */
+  .system-notice{margin-top:var(--s3);border:1.5px dashed var(--black);border-radius:var(--r1);padding:var(--s3) var(--s4);display:none;align-items:center;gap:var(--s3);background:repeating-linear-gradient(135deg,var(--panel) 0 10px,var(--panel2) 10px 20px);color:var(--card-ink);animation:hhrise 200ms ease both;}
+  .system-notice.show{display:flex;}
+  .system-notice .dot{width:8px;height:8px;border-radius:var(--r4);background:var(--black);flex:none;margin-top:6px;}
+  .system-notice .body{flex:1;min-width:0;font-size:var(--fs);line-height:1.5;}
+  .system-notice .body b{display:block;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;}
+  .system-notice .actions{display:flex;gap:var(--s2);flex:none;}
+  .system-notice button{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.08em;text-transform:uppercase;font-weight:700;border-radius:var(--r4);padding:8px 14px;cursor:pointer;border:1.5px solid var(--black);background:var(--panel);color:var(--card-ink);}
+  .system-notice button:hover{background:var(--black);color:var(--cream);}
+  .system-notice button.dismiss{border-color:var(--border-strong);font-weight:400;}
+  .system-notice button.dismiss:hover{background:var(--panel2);color:var(--card-ink);border-color:var(--border-strong);}
+  .meter-bars{display:flex;align-items:flex-end;gap:2px;height:34px;flex:1;min-width:0;}
+  .meter-bar{flex:1;min-width:2px;height:100%;background:var(--pink);border-radius:2px 2px 0 0;transform:scaleY(0.08);transform-origin:bottom;transition:transform 70ms linear;}
+  .meter-label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--pink-ink);font-weight:700;white-space:nowrap;}
 
-  .try-title{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin:var(--s5) 0 var(--s3);}
+  /* chevron ribbon phase tracker — echoes the brand's timeline ribbons */
+  .phases{display:flex;margin-top:var(--s4);font-family:var(--mono);font-size:var(--fx);letter-spacing:0.08em;text-transform:uppercase;}
+  .phase-pill{flex:1;min-width:0;text-align:center;padding:9px 14px 9px 22px;margin-left:-12px;color:var(--ink2);background:var(--panel2);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%,12px 50%);opacity:.7;white-space:nowrap;transition:background-color 220ms ease,color 220ms ease,opacity 220ms ease,font-weight 220ms ease;}
+  .phase-pill:first-child{margin-left:0;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);}
+  .phase-pill.past{opacity:1;color:var(--card-ink);background:var(--cream-dim);}
+  .phase-pill.now{background:var(--yellow);color:var(--on-yellow);font-weight:700;opacity:1;}
+
+  .try-title{display:flex;align-items:center;gap:8px;color:var(--ink2);margin:var(--s5) 0 var(--s3);}
   .chips{display:flex;flex-wrap:wrap;gap:var(--s3);}
-  .chip{display:flex;align-items:baseline;gap:9px;text-align:left;max-width:100%;background:var(--bg);border:none;box-shadow:var(--nm-sm);border-radius:var(--r2);padding:12px 18px;cursor:pointer;font-size:14px;line-height:1.35;}
-  .chip:hover{box-shadow:var(--nm-in-sm);}
-  .chip .tag{font-family:var(--mono);font-size:var(--fx);color:var(--accent);font-weight:600;}
+  .chip{display:flex;align-items:baseline;gap:9px;text-align:left;max-width:100%;background:var(--panel);border:1.5px solid var(--border-strong);border-radius:var(--r4);padding:11px 18px;cursor:pointer;font-size:14px;line-height:1.35;font-family:var(--sans);color:var(--card-ink);}
+  .chip:hover{border-color:var(--pink);}
+  .chip .tag{font-family:var(--mono);font-size:var(--fx);color:var(--pink-ink);font-weight:700;}
 
   .answer-wrap{padding:var(--s6) 0 0;display:none;}
   .answer-wrap.show{display:block;}
-  .answer-box{padding:var(--s6);border-radius:var(--r3);background:var(--bg);animation:hhrise 240ms ease both;box-shadow:12px 12px 26px var(--sh-d), -12px -12px 26px var(--sh-l);}
-  .answer-box.uncertain{box-shadow:var(--nm-in);}
-  .answer-box.declined{box-shadow:var(--nm-in-sm);background:repeating-linear-gradient(135deg,var(--bg) 0 10px,var(--sunk) 10px 20px);}
+  .answer-box{padding:var(--s6);border-radius:var(--r3);animation:hhrise 220ms ease both;border:2px solid transparent;}
+  .answer-box.uncertain{border-color:var(--pink);}
+  .answer-box.declined{border-color:var(--black);background:repeating-linear-gradient(135deg,var(--panel) 0 12px,var(--panel2) 12px 24px);}
   .answer-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);}
-  .stamp{border-radius:var(--r4);padding:9px 18px;font-family:var(--mono);font-size:var(--fs);font-weight:600;letter-spacing:0.22em;box-shadow:var(--nm-sm);}
-  .lang-badge{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r4);padding:6px 12px;color:var(--ink2);}
-  #copy-btn{margin-left:auto;background:var(--bg);border:none;box-shadow:var(--nm-sm);border-radius:var(--r4);padding:9px 16px;cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
-  #copy-btn:hover{box-shadow:var(--nm-in-sm);}
-  .answer-rule{height:8px;border-radius:var(--r4);background:var(--green);box-shadow:var(--nm-sm);margin:var(--s5) 0;}
-  .answer-rule.uncertain{background:repeating-linear-gradient(90deg,var(--yellow) 0 12px,transparent 12px 22px);}
-  .answer-rule.declined{background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 12px);}
-  .asked-line{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px;}
+  .stamp{border-radius:var(--r4);padding:8px 18px;font-family:var(--mono);font-size:var(--fs);font-weight:700;letter-spacing:0.16em;display:inline-block;transform:rotate(-2deg);}
+  .stamp.stamped{animation:stamp-land 480ms cubic-bezier(0.16,1,0.3,1) both;}
+  .lang-badge{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;border:1.5px solid var(--border-strong);border-radius:var(--r4);padding:6px 12px;color:var(--ink2);}
+  #copy-btn{margin-left:auto;background:var(--panel2);color:var(--card-ink);border:1.5px solid var(--border-strong);border-radius:var(--r4);padding:9px 16px;cursor:pointer;font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+  #copy-btn:hover{border-color:var(--pink);}
+  .answer-rule{height:4px;background:var(--yellow);border-radius:2px;margin:var(--s5) 0;transform-origin:left;transform:scaleX(1);}
+  .answer-rule.draw{animation:rule-draw 460ms 120ms cubic-bezier(0.16,1,0.3,1) both;}
+  .answer-rule.uncertain{background:repeating-linear-gradient(90deg,var(--pink) 0 10px,transparent 10px 18px);}
+  .answer-rule.declined{background:repeating-linear-gradient(90deg,var(--black) 0 6px,transparent 6px 11px);}
+  .asked-line{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px;}
   .conf-row{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s5);}
-  .tier{font-family:var(--mono);font-size:var(--fs);letter-spacing:0.12em;text-transform:uppercase;font-weight:600;}
-  .conf-cells{display:flex;flex:1;min-width:160px;max-width:320px;height:18px;background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r4);padding:4px;gap:3px;}
-  .conf-cell{flex:1;border-radius:var(--r4);background:var(--sunk);opacity:.6;}
-  .conf-readout{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.08em;color:var(--ink2);}
-  #answer-text{font-size:var(--fl);line-height:1.68;max-width:62ch;white-space:pre-wrap;}
-  #answer-text.streaming::after{content:"";display:inline-block;width:0.42em;height:1em;border-radius:3px;background:var(--accent);vertical-align:-0.14em;animation:hhblink 0.7s steps(1) infinite;}
-  .cited-title{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin:var(--s6) 0 var(--s3);}
-  .cited-doc{display:flex;gap:12px;align-items:baseline;border-radius:var(--r2);padding:14px 16px;background:var(--bg);box-shadow:var(--nm-sm);margin-bottom:var(--s3);}
-  .cited-doc .n{font-family:var(--mono);font-weight:600;color:var(--accent);flex:none;}
+  .tier{font-family:var(--mono);font-size:var(--fs);letter-spacing:0.1em;text-transform:uppercase;font-weight:700;}
+  .conf-cells{display:flex;flex:1;min-width:160px;max-width:320px;height:16px;border:1.5px solid var(--border-strong);border-radius:var(--r4);padding:2px;gap:2px;}
+  .conf-cell{flex:1;border-radius:var(--r4);background:var(--panel2);transform-origin:center;}
+  .conf-cell.lit{animation:cell-light 260ms cubic-bezier(0.16,1,0.3,1) both;}
+  .conf-readout{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.04em;color:var(--ink2);}
+  #answer-text{font-size:var(--fl);line-height:1.68;max-width:66ch;white-space:pre-wrap;}
+  #answer-text.streaming::after{content:"";display:inline-block;width:0.42em;height:1em;background:var(--pink);vertical-align:-0.14em;animation:hhblink 0.7s steps(1) infinite;}
+  .cited-title{color:var(--ink2);margin:var(--s6) 0 var(--s3);}
+  .cited-doc{display:flex;gap:12px;align-items:baseline;border-radius:var(--r1);padding:13px 16px;background:var(--panel2);border:1.5px dashed var(--border-strong);margin-bottom:var(--s3);animation:hhrise 260ms cubic-bezier(0.16,1,0.3,1) both;}
+  .cited-doc .n{font-family:var(--serif);font-weight:400;color:var(--pink-ink);flex:none;}
   .cited-doc .title{flex:1;min-width:0;font-size:var(--fm);}
   .cited-doc .src{color:var(--ink2);}
   .cited-doc .score{font-family:var(--mono);font-size:var(--fs);flex:none;}
 
   .log-wrap{padding:var(--s6) 0;}
-  .log-box{background:var(--bg);border-radius:var(--r3);box-shadow:var(--nm);}
-  .log-box.open{box-shadow:var(--nm-in);}
-  #log-toggle{width:100%;display:flex;align-items:center;gap:var(--s3);background:none;border:none;padding:var(--s5);cursor:pointer;text-align:left;font-family:var(--mono);font-size:var(--fs);letter-spacing:0.14em;text-transform:uppercase;font-weight:600;border-radius:var(--r3);}
-  .caret{display:flex;color:var(--accent);transition:transform 160ms ease;}
+  .log-box{border:1.5px solid var(--border);}
+  #log-toggle{width:100%;display:flex;align-items:center;gap:var(--s3);background:none;border:none;padding:var(--s5);cursor:pointer;text-align:left;font-family:var(--mono);font-size:var(--fs);letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--card-ink);}
+  .caret{display:flex;color:var(--pink-ink);transition:transform 160ms ease;}
   .caret.open{transform:rotate(90deg);}
-  #log-summary{color:var(--accent);}
+  #log-summary{color:var(--pink-ink);}
   .log-body{padding:0 var(--s5) var(--s5);font-family:var(--mono);display:none;}
   .log-body.open{display:block;}
   .log-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--s6);}
-  .log-col-title{font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:var(--s4);}
+  .log-col-title{font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:var(--s4);}
   .stage-row{margin-bottom:var(--s4);opacity:.45;}
   .stage-row.done{opacity:1;}
   .stage-head{display:flex;align-items:baseline;gap:var(--s2);font-size:var(--fs);}
-  .stage-dot{display:inline-block;width:10px;height:10px;border-radius:var(--r4);flex:none;background:var(--sunk);box-shadow:var(--nm-in-sm);}
-  .stage-row.done .stage-dot{background:var(--accent);box-shadow:var(--nm-sm);}
-  .stage-label{letter-spacing:0.08em;text-transform:uppercase;flex:1;min-width:0;}
-  .stage-ms{font-weight:600;}
-  .stage-track{height:12px;background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r4);margin-top:7px;padding:2px;}
-  .stage-fill{height:100%;width:100%;border-radius:var(--r4);background:var(--accent);box-shadow:var(--nm-sm);transform:scaleX(0);transform-origin:left;transition:transform 240ms cubic-bezier(.2,.8,.2,1);}
-  .stage-total{margin-top:var(--s5);display:flex;justify-content:space-between;font-size:var(--fs);letter-spacing:0.08em;text-transform:uppercase;background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r2);padding:10px 14px;}
-  .log-doc{border-radius:var(--r2);padding:12px 14px;background:var(--bg);box-shadow:var(--nm-in-sm);margin-bottom:var(--s3);}
+  .stage-dot{display:inline-block;width:8px;height:8px;border-radius:var(--r4);flex:none;background:var(--border-strong);}
+  .stage-row.done .stage-dot{background:var(--yellow);}
+  .stage-label{letter-spacing:0.06em;text-transform:uppercase;flex:1;min-width:0;}
+  .stage-ms{font-weight:700;}
+  .stage-track{height:6px;background:var(--panel2);border-radius:var(--r4);margin-top:7px;}
+  .stage-fill{height:100%;width:100%;border-radius:var(--r4);background:var(--yellow);transform:scaleX(0);transform-origin:left;transition:transform 240ms cubic-bezier(.2,.8,.2,1);}
+  .stage-total{margin-top:var(--s5);display:flex;justify-content:space-between;font-size:var(--fs);letter-spacing:0.06em;text-transform:uppercase;border:1.5px dashed var(--border-strong);border-radius:var(--r1);padding:10px 14px;}
+  .log-doc{border-radius:var(--r1);padding:12px 14px;background:var(--panel2);margin-bottom:var(--s3);}
   .log-doc-head{display:flex;gap:var(--s2);align-items:baseline;}
-  .log-doc-rank{font-weight:600;color:var(--accent);flex:none;}
+  .log-doc-rank{font-weight:700;color:var(--pink-ink);flex:none;}
   .log-doc-title{flex:1;min-width:0;font-size:var(--fs);}
-  .log-doc-score{font-size:var(--fs);font-weight:600;flex:none;}
-  .log-doc-meta{font-size:var(--fx);color:var(--ink2);padding-left:26px;}
-  .log-empty{font-size:var(--fs);letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);}
+  .log-doc-score{font-size:var(--fs);font-weight:700;flex:none;}
+  .log-doc-meta{font-size:var(--fx);color:var(--ink2);margin-top:4px;}
+  .log-empty{font-size:var(--fs);letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);}
 
-  .footer-card{padding:var(--s6);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s5);align-items:end;margin-bottom:var(--s8);}
-  .powered-title{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:var(--s3);}
+  .footer-band{background:var(--green);color:var(--cream);border-radius:var(--r3);margin:var(--s6) 0 var(--s8);padding:var(--s6);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s5);align-items:end;}
+  .powered-title{color:var(--ink2);margin-bottom:var(--s3);}
+  :root[data-theme="dark"] .footer-band{background:var(--cream-dim);color:var(--green);}
+  .footer-band .powered-title{color:#BFE0CC;}
+  :root[data-theme="dark"] .footer-band .powered-title{color:var(--ink2);}
   .powered-badges{display:flex;flex-wrap:wrap;gap:var(--s2);font-family:var(--mono);font-size:var(--fs);}
-  .powered-badges span{background:var(--bg);box-shadow:var(--nm-in-sm);border-radius:var(--r4);padding:7px 14px;}
+  .powered-badges span{border:1.5px solid rgba(255,251,232,.3);border-radius:var(--r4);padding:7px 14px;}
+  :root[data-theme="dark"] .powered-badges span{border-color:var(--border-strong);}
   .footer-right{text-align:right;}
-  .footer-title{font-family:'Instrument Serif',serif;font-size:var(--f2);line-height:1.05;}
-  .footer-title em{font-style:italic;color:var(--accent);}
-  .footer-sub{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin-top:8px;}
+  .footer-title{font-family:var(--serif);font-weight:400;font-size:var(--f2);line-height:1.08;text-transform:uppercase;}
+  .footer-title em{font-style:normal;color:var(--pink-on-band);}
+  .footer-sub{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.1em;text-transform:uppercase;color:#BFE0CC;margin-top:8px;}
+  :root[data-theme="dark"] .footer-sub{color:var(--ink2);}
 
   /* ============================================================
-     Mobile (<=720px) — rethought, not scaled: the primary task
-     (ask a question) is buried below a full screen-and-a-half of
-     hero on a phone. Every section here is deliberately compressed
-     so the query bar is reachable fast, every control meets the
-     44px touch-target floor, and form inputs stay at 16px so iOS
-     Safari doesn't zoom the page on focus.
+     Mobile (<=720px) — the primary task (ask a question) reachable
+     without scrolling a full viewport of hero first; 44px touch
+     targets throughout; 16px inputs so iOS Safari doesn't zoom.
      ============================================================ */
   @media (max-width:720px){
     :root{ --s6:24px; --s7:28px; --s8:40px; }
+    .sun-art{display:none;}
 
-    /* Header: brand row, then a full-width, evenly-split button
-       row underneath - avoids the awkward wrap of three unequal
-       items competing for one line. */
     header.hh{gap:var(--s2);}
-    .brand{padding:7px 12px;}
+    .brand{padding:6px 6px 6px 12px;}
     .header-actions{width:100%;display:grid !important;grid-template-columns:1fr 1fr;gap:var(--s2);}
-    .btn-nm{min-height:44px;justify-content:center;padding:10px 12px;}
+    .btn{min-height:44px;justify-content:center;padding:10px 12px;}
 
     .how-panel{padding:var(--s4);gap:var(--s4);margin-top:var(--s3);}
 
-    /* Hero: same content, roughly half the vertical footprint -
-       the query bar below should be one short scroll away, not
-       three. */
-    .hero{padding:var(--s4) 0 var(--s4);gap:var(--s5);}
-    .kicker{margin-bottom:var(--s3);padding:5px 12px;}
-    h1.hh{font-size:clamp(40px,15vw,64px);}
+    .hero-band{padding:var(--s5) var(--s4) var(--s4);margin-top:var(--s3);border-radius:var(--r2);}
+    .hero{gap:var(--s4);}
+    h1.hh{font-size:clamp(32px,13vw,52px);}
     .tagline{font-size:var(--fm);margin-top:var(--s3);max-width:none;}
     .hero-badges{margin-top:var(--s3);}
     .ribbon{padding:8px 16px;font-size:var(--fs);}
 
-    /* Corpus stats: a live-status strip, not a showcase card - the
-       full methodology note moves to "How this works" instead of
-       sitting under four stat boxes on every phone load. */
-    .stats-card{margin-top:var(--s4);padding:var(--s3) var(--s4);}
+    .stats-card{padding:var(--s3) var(--s4);border-radius:var(--r2);}
     .stats-title{margin-bottom:var(--s3);}
-    .stats-grid{gap:var(--s2);}
-    .stat-box{padding:var(--s3);}
-    .stat-num{font-size:24px;}
+    .stat-box{padding:10px 12px;}
+    .stat-num{font-size:22px;}
     .stats-footnote{display:none;}
 
-    /* Query bar: the page's actual job. Full-width input, 16px
-       floor (no iOS zoom-on-focus), every control >=44px tall. */
-    .qbar{padding:8px 8px 8px 14px;gap:6px;}
+    .qbar{padding:6px 6px 6px 14px;gap:6px;}
     #query-input{font-size:16px;padding:12px 4px;}
     #mic-btn{padding:0 14px;min-height:48px;}
     #mic-btn span{display:none;}
@@ -232,14 +282,14 @@
     .qbar-row2{gap:var(--s3);}
     #mic-language{font-size:16px;padding:9px 10px;min-height:44px;}
     .lang-label{gap:6px;}
-    .phase-pill{padding:9px 12px;min-height:32px;}
+    .phases{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .phases::-webkit-scrollbar{display:none;}
+    .phase-pill{flex:none;min-width:max-content;}
 
     .try-title{margin:var(--s4) 0 var(--s3);}
     .chips{gap:var(--s2);}
     .chip{padding:12px 16px;min-height:44px;width:100%;}
 
-    /* Answer card: same hierarchy, tighter frame so the answer
-       text itself gets the width instead of the padding. */
     .answer-wrap{padding-top:var(--s4);}
     .answer-box{padding:var(--s4);}
     .answer-top{gap:var(--s2);}
@@ -252,22 +302,46 @@
     .log-body{padding:0 var(--s4) var(--s4);}
     .log-cols{grid-template-columns:1fr;gap:var(--s5);}
 
-    .footer-card{padding:var(--s4);grid-template-columns:1fr;margin-bottom:var(--s6);}
+    .footer-band{padding:var(--s4);grid-template-columns:1fr;margin:var(--s4) 0 var(--s6);border-radius:var(--r2);}
     .footer-right{text-align:left;}
   }
 </style>
 </head>
 <body>
+<!--
+THESIS: This isn't an invented sci-fi skin — it's the actual Hacker House Goa
+2026 brand kit (forest green / cream / hot pink / golden yellow, retro Goan
+beach travel-poster illustration) applied to a working live demo console.
+OWN-WORLD: Green hero + footer bands bookending a cream working area; poster
+serif (Rozha One, chosen for real Devanagari support matching the brand's
+mixed-script wordmark) display type, mono (IBM Plex Mono) labels/data, Sora
+body; pill buttons, dashed-circle/dashed-border framing, chevron-ribbon phase
+tracker echoing the official site's timeline ribbons; real (not glow) card
+shadows; hand-authored sun/wave line-art standing in for the brand's
+illustrated hero art.
+STORY: A judge recognizes the actual event brand instantly, then asks a
+question and watches the pipeline run as a chevron-ribbon phase strip; the
+answer lands as CONFIRMED (yellow) / UNCERTAIN (pink) / DECLINED (black) —
+reusing the brand's own status-badge colors (RUNNING=yellow, closed=black).
+FIRST VIEWPORT: Green hero band — headline + tagline + cream stats card over
+a hand-drawn sun/wave illustration; sticky query bar sits just below on the
+cream working ground, reachable without excess scrolling.
+FORM: Brand-pinned redesign — visual authority is the official Hacker House
+Goa 2026 marketing site (Images/Screenshot 2026-08-16 08093*.png), supplied
+by the user as binding reference, not a rolled/invented direction.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
 
 <div class="wrap">
   <header class="hh">
-    <div class="brand"><b>HH Goa 2026</b><span>Goa, India · task #2</span></div>
-    <div class="header-actions" style="display:flex;gap:var(--s2);">
-      <button type="button" class="btn-nm" id="how-btn" aria-label="How this works">
+    <div class="brand"><b>HH GOA 2026</b><span>Goa, India · task #2</span></div>
+    <div class="header-actions">
+      <button type="button" class="btn" id="how-btn" aria-label="How this works">
         <svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.15" fill="currentColor"/></svg>
         How this works
       </button>
-      <button type="button" class="btn-nm" id="theme-btn" aria-label="Toggle light and dark theme" style="min-width:104px;">
+      <button type="button" class="btn" id="theme-btn" aria-label="Toggle cream and night theme" style="min-width:104px;">
         <svg id="theme-icon-dark" viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12h2.4M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <svg id="theme-icon-light" viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;display:none;"><path d="M20 14.6A8.6 8.6 0 0 1 9.4 4a8.8 8.8 0 1 0 10.6 10.6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         <span id="theme-label">Cream</span>
@@ -275,41 +349,60 @@
     </div>
   </header>
 
-  <div id="how-panel" class="how-panel" style="display:none;">
-    <div class="how-title">How this works</div>
+  <div id="how-panel" class="how-panel panel" style="display:none;">
+    <div class="how-title label">How this works</div>
     <div class="how-item"><span class="how-num">01</span><span style="font-size:var(--fm);">You speak or type in any of 14 Indian languages. Sarvam transcribes live; the query is embedded as-is.</span></div>
     <div class="how-item"><span class="how-num">02</span><span style="font-size:var(--fm);">Dense vectors (ChromaDB) and keyword hits (bm25s) are merged over a live corpus of 858,768 passages.</span></div>
     <div class="how-item"><span class="how-num">03</span><span style="font-size:var(--fm);">Groq (Claude as fallback) generates the answer, streamed live. Every answer is checked back against the retrieved passages — off-topic or ungrounded questions are declined or hedged, not guessed.</span></div>
   </div>
 
-  <div class="hero">
-    <div class="hero-left">
-      <div class="kicker">Multilingual voice RAG</div>
-      <h1 class="hh">
-        <span>Hacker</span>
-        <span>House</span>
-        <span class="goa">Goa<span class="devanagari-tag">गोवा</span></span>
-      </h1>
-      <p class="tagline">Ask a question out loud, in your language. Answers come back grounded in a live document corpus — with the machinery shown.</p>
-      <div class="hero-badges">
-        <span class="ribbon">
-          <svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;flex:none;"><path d="M9.5 3.5 7 20.5M17 3.5 14.5 20.5M3.8 8.7h17M3 15.3h17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          RAGInGoa
-        </span>
-        <span class="pill" style="color:var(--ink2);">Task #2 · voice-enabled RAG</span>
-      </div>
+  <div class="hero-band">
+    <div class="sun-art" aria-hidden="true">
+      <svg viewBox="0 0 400 400">
+        <circle cx="230" cy="230" r="60" fill="var(--yellow)"/>
+        <g stroke="var(--yellow)" stroke-width="4" stroke-linecap="round">
+          <path d="M230 130v-24"/><path d="M230 330v24"/>
+          <path d="M130 230h-24"/><path d="M330 230h24"/>
+          <path d="M159 159l-17-17"/><path d="M301 301l17 17"/>
+          <path d="M301 159l17-17"/><path d="M159 301l-17 17"/>
+        </g>
+        <path d="M20 300q40-26 80 0t80 0 80 0 80 0 80 0" fill="none" stroke="currentColor" stroke-width="3" opacity=".55"/>
+        <path d="M10 340q40-22 80 0t80 0 80 0 80 0 80 0" fill="none" stroke="currentColor" stroke-width="3" opacity=".35"/>
+        <path d="M60 250q10-70 55-90" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+        <path d="M62 252q-30-40-20-88" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+        <path d="M63 250q34-30 22-86" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+        <g id="sun-pulse"><circle cx="230" cy="230" r="34" fill="none" stroke="var(--yellow)" stroke-width="2"/></g>
+      </svg>
     </div>
-    <div class="stats-card card-raised">
-      <div class="stats-title"><span class="live-dot" id="live-dot"></span><span id="live-label">Corpus · live</span></div>
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num">858,768</div><div class="stat-label">documents</div></div>
-        <div class="stat-box"><div class="stat-num">14</div><div class="stat-label">languages</div></div>
-        <div class="stat-box"><div class="stat-num">~0.3s</div><div class="stat-label">median run*</div></div>
-        <div class="stat-box"><div class="stat-num">0.70</div><div class="stat-label">grounding gate</div></div>
+    <div class="hero">
+      <div class="hero-left">
+        <h1 class="hh">
+          <span>Hacker</span>
+          <span>House <span class="goa">गोवा</span></span>
+        </h1>
+        <p class="tagline">Ask a question out loud, in your language. Answers come back grounded in a live document corpus — with the machinery shown.</p>
+        <div class="hero-badges">
+          <span class="ribbon">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;flex:none;"><path d="M9.5 3.5 7 20.5M17 3.5 14.5 20.5M3.8 8.7h17M3 15.3h17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            RAGInGoa
+          </span>
+          <span class="label hero-note">Task #2 · voice-enabled RAG</span>
+        </div>
       </div>
-      <div class="stats-footnote" style="font-family:var(--mono);font-size:10px;color:var(--ink2);margin-top:var(--s3);">*P50 across embedding+retrieval+generation+grounding, measured against this live deployment</div>
+      <div class="stats-card panel">
+        <div class="stats-title label"><span class="live-dot" id="live-dot"></span><span id="live-label">Corpus · live</span></div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-num">858,768</div><div class="stat-label">documents</div></div>
+          <div class="stat-box"><div class="stat-num">14</div><div class="stat-label">languages</div></div>
+          <div class="stat-box"><div class="stat-num">~0.3s</div><div class="stat-label">median run*</div></div>
+          <div class="stat-box"><div class="stat-num">0.70</div><div class="stat-label">grounding gate</div></div>
+        </div>
+        <div class="stats-footnote">*P50 across embedding+retrieval+generation+grounding, measured against this live deployment</div>
+      </div>
     </div>
   </div>
+
+  <div class="xdivider" aria-hidden="true">×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××××</div>
 
   <div class="qbar-wrap">
     <div class="qbar">
@@ -347,21 +440,30 @@
 
     <div class="meter-box" id="meter-box">
       <div class="meter-bars" id="meter-bars" aria-hidden="true"></div>
-      <div class="meter-label"><span class="live-dot" style="background:var(--accent);"></span><span id="meter-label-text">recording · tap to stop</span></div>
+      <div class="meter-label"><span class="live-dot" style="background:var(--pink);"></span><span id="meter-label-text">recording · tap to stop</span></div>
+    </div>
+
+    <div class="system-notice" id="system-notice" role="status" aria-live="polite">
+      <span class="dot"></span>
+      <div class="body">
+        <b id="notice-title">Notice</b>
+        <span id="notice-text"></span>
+      </div>
+      <div class="actions" id="notice-actions"></div>
     </div>
 
     <div class="phases" id="phases" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <div class="try-title">Try one
+  <div class="try-title label">Fire a test event
     <svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
   <div class="chips" id="chips"></div>
 
   <div class="answer-wrap" id="answer-wrap">
-    <div class="answer-box" id="answer-box">
+    <div class="answer-box panel" id="answer-box">
       <div class="answer-top">
-        <div class="stamp" id="stamp">GROUNDED</div>
+        <div class="stamp" id="stamp">CONFIRMED</div>
         <div class="lang-badge" id="lang-badge">Answered in English</div>
         <button type="button" id="copy-btn" aria-label="Copy answer">
           <svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;"><rect x="8.5" y="8.5" width="11.5" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.6 5.2A2.5 2.5 0 0 0 13.4 4H6.5A2.5 2.5 0 0 0 4 6.5v7a2.5 2.5 0 0 0 1.3 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -377,14 +479,14 @@
       </div>
       <div id="answer-text"></div>
       <div id="cited-section" style="display:none;">
-        <div class="cited-title">Grounded in</div>
+        <div class="cited-title label">Grounded in</div>
         <div id="cited-docs"></div>
       </div>
     </div>
   </div>
 
   <div class="log-wrap">
-    <div class="log-box" id="log-box">
+    <div class="log-box panel" id="log-box">
       <button type="button" id="log-toggle" aria-expanded="false">
         <span class="caret" id="log-caret"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;display:block;"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span>Developer log</span>
@@ -408,9 +510,9 @@
     </div>
   </div>
 
-  <div class="footer-card card-raised">
+  <div class="footer-band">
     <div>
-      <div class="powered-title">Powered by, honestly</div>
+      <div class="powered-title label">Powered by, honestly</div>
       <div class="powered-badges">
         <span>Groq · inference</span>
         <span>Claude · fallback</span>
@@ -420,7 +522,7 @@
       </div>
     </div>
     <div class="footer-right">
-      <div class="footer-title">Hacker House Goa <em>2026</em></div>
+      <div class="footer-title">Hacker House <em>Goa 2026</em></div>
       <div class="footer-sub">Voice-enabled RAG · Task #2</div>
       <div class="ribbon" style="margin-top:var(--s3);padding:7px 16px;font-size:var(--fs);">
         <svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;"><path d="M9.5 3.5 7 20.5M17 3.5 14.5 20.5M3.8 8.7h17M3 15.3h17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -449,7 +551,7 @@
     document.documentElement.dataset.theme = t;
     $("theme-icon-dark").style.display = t === "dark" ? "none" : "block";
     $("theme-icon-light").style.display = t === "dark" ? "block" : "none";
-    $("theme-label").textContent = t === "dark" ? "Cream" : "Greige";
+    $("theme-label").textContent = t === "dark" ? "Cream" : "Night";
   }
   let theme = "light";
   setTheme(theme);
@@ -470,6 +572,18 @@
   logToggle.addEventListener("click", () => setLogOpen(!logOpen));
 
   // ============================================================
+  // Sun-art pulse — fires on the hero illustration whenever a query
+  // starts running, so the brand art never looks static mid-answer.
+  // ============================================================
+  function firePulse() {
+    const p = $("sun-pulse");
+    if (!p) return;
+    p.classList.remove("fire");
+    void p.offsetWidth;
+    p.classList.add("fire");
+  }
+
+  // ============================================================
   // Phase pills (idle / listening / transcribing / thinking / answering)
   // ============================================================
   const PHASES = [["idle", "01 idle"], ["listening", "02 listening"], ["transcribing", "03 transcribing"], ["thinking", "04 thinking"], ["answering", "05 answering"]];
@@ -485,8 +599,47 @@
       el.appendChild(span);
     });
   }
-  function setPhase(p) { phase = p; renderPhases(); }
+  function setPhase(p) {
+    const wasIdle = phase === "idle" || phase === "done-answering";
+    phase = p;
+    renderPhases();
+    if (wasIdle && (p === "listening" || p === "thinking")) firePulse();
+  }
   renderPhases();
+
+  // ============================================================
+  // System notice — the one visible surface for failures that would
+  // otherwise happen silently (dropped connection, denied mic access,
+  // a backend pipeline error). Reuses the DECLINED card's black/dashed
+  // "closed" language, but never appears inside the answer card itself,
+  // so a system failure is never mistaken for a real answered outcome.
+  // ============================================================
+  const noticeEl = $("system-notice");
+  const noticeTitle = $("notice-title");
+  const noticeText = $("notice-text");
+  const noticeActions = $("notice-actions");
+  let noticeAutoHide = null;
+
+  function showNotice(title, text, { actions = [], autoHideMs = null } = {}) {
+    if (noticeAutoHide) { clearTimeout(noticeAutoHide); noticeAutoHide = null; }
+    noticeTitle.textContent = title;
+    noticeText.textContent = text;
+    noticeActions.innerHTML = "";
+    actions.forEach(a => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = a.dismiss ? "dismiss" : "";
+      btn.textContent = a.label;
+      btn.addEventListener("click", () => { a.onClick(); });
+      noticeActions.appendChild(btn);
+    });
+    noticeEl.classList.add("show");
+    if (autoHideMs) noticeAutoHide = setTimeout(hideNotice, autoHideMs);
+  }
+  function hideNotice() {
+    if (noticeAutoHide) { clearTimeout(noticeAutoHide); noticeAutoHide = null; }
+    noticeEl.classList.remove("show");
+  }
 
   // ============================================================
   // WebSocket transport — connects to /ws/demo (no key needed, the
@@ -515,19 +668,48 @@
     return `${proto}://${location.host}/ws/demo`;
   }
 
+  let reconnectTimer = null;
+  let connectAttempts = 0;
+
   function setConnected(isConnected) {
     connDot.classList.toggle("off", !isConnected);
     connLabel.textContent = isConnected ? "connected" : "disconnected";
     sendBtn.disabled = !isConnected;
+    if (isConnected) {
+      connectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      hideNotice();
+    }
+  }
+
+  function reconnectNow() {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    connect();
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    connectAttempts += 1;
+    const delayMs = Math.min(2000 * connectAttempts, 10000);
+    reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delayMs);
+    // Only surface a notice once the first retry has already failed —
+    // a single dropped frame during page load shouldn't alarm anyone.
+    if (connectAttempts >= 2) {
+      showNotice(
+        "Connection lost",
+        "The live pipeline is unreachable — retrying automatically every few seconds.",
+        { actions: [{ label: "Retry now", onClick: reconnectNow }] }
+      );
+    }
   }
 
   function connect() {
-    if (ws) { try { ws.close(); } catch (e) {} }
+    if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} }
     ws = new WebSocket(wsUrl());
     setConnected(false);
     connLabel.textContent = "connecting…";
 
-    ws.onclose = () => { setConnected(false); pendingRequestActive = false; };
+    ws.onclose = () => { setConnected(false); pendingRequestActive = false; scheduleReconnect(); };
     ws.onerror = () => {};
     ws.onmessage = (ev) => {
       let msg;
@@ -541,6 +723,15 @@
     return (s ?? "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
+  // Restarts a CSS animation trigger class even when it was already present
+  // (e.g. two CONFIRMED answers in a row) by forcing a reflow between remove
+  // and re-add.
+  function restartAnim(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
   function handleEvent(msg) {
     const stage = msg.stage;
 
@@ -548,6 +739,11 @@
       pendingRequestActive = false;
       setPhase("idle");
       $("meter-box").classList.remove("show");
+      showNotice(
+        "Couldn't generate an answer",
+        (msg.message || "Something went wrong running that query.") + " Try asking again.",
+        { autoHideMs: 6000, actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] }
+      );
       return;
     }
 
@@ -584,10 +780,14 @@
   }
 
   // ---- Answer card ----
+  // Tri-state grammar reuses the brand's own status-badge colors:
+  // yellow = active/confirmed (like the site's "RUNNING" badge), pink =
+  // the brand's general alert accent for a hedged/uncertain answer, and
+  // black = closed/declined (like the site's "RESULTS OUT" badge).
   function tierMeta(state) {
-    if (state === "declined") return { stamp: "DECLINED", tier: "No answer returned", cls: "declined", box: "declined", rule: "declined", cell: "var(--accent)" };
-    if (state === "uncertain") return { stamp: "UNCERTAIN", tier: "Low confidence · hedged", cls: "uncertain", box: "uncertain", rule: "uncertain", cell: "var(--yellow)" };
-    return { stamp: "GROUNDED", tier: "High confidence", cls: "grounded", box: "", rule: "", cell: "var(--green)" };
+    if (state === "declined") return { stamp: "DECLINED", tier: "No answer returned", box: "declined", rule: "declined", cell: "var(--black)", stampBg: "var(--black)", stampFg: "var(--on-black)", tierColor: "var(--ink)" };
+    if (state === "uncertain") return { stamp: "UNCERTAIN", tier: "Low confidence · hedged", box: "uncertain", rule: "uncertain", cell: "var(--pink)", stampBg: "var(--pink)", stampFg: "var(--on-pink)", tierColor: "var(--pink-ink)" };
+    return { stamp: "CONFIRMED", tier: "High confidence", box: "", rule: "", cell: "var(--yellow)", stampBg: "var(--yellow)", stampFg: "var(--on-yellow)", tierColor: "var(--yellow-ink)" };
   }
 
   function answerState(msg) {
@@ -610,20 +810,22 @@
     const state = answerState(msg);
     const meta = tierMeta(state);
     const box = $("answer-box");
-    box.className = "answer-box" + (meta.box ? " " + meta.box : "");
+    box.className = "answer-box panel" + (meta.box ? " " + meta.box : "");
 
     const stamp = $("stamp");
     stamp.textContent = meta.stamp;
-    stamp.style.background = state === "declined" ? "var(--accent)" : state === "uncertain" ? "var(--yellow)" : "var(--green)";
-    stamp.style.color = state === "declined" ? "var(--on-accent)" : state === "uncertain" ? "var(--on-yellow)" : "var(--on-green)";
+    stamp.style.background = meta.stampBg;
+    stamp.style.color = meta.stampFg;
+    restartAnim(stamp, "stamped");
 
     $("lang-badge").textContent = "Answered in " + (LANG_NAMES[currentLang] || currentLang);
     $("answer-rule").className = "answer-rule" + (meta.rule ? " " + meta.rule : "");
+    restartAnim($("answer-rule"), "draw");
     $("asked-query").textContent = currentQuery;
 
     const tierLabel = $("tier-label");
     tierLabel.textContent = meta.tier;
-    tierLabel.style.color = state === "declined" ? "var(--accent-ink)" : state === "uncertain" ? "var(--yellow-ink)" : "var(--green-ink)";
+    tierLabel.style.color = meta.tierColor;
 
     const confCells = $("conf-cells");
     confCells.innerHTML = "";
@@ -631,7 +833,11 @@
     for (let i = 0; i < 12; i++) {
       const cell = document.createElement("div");
       cell.className = "conf-cell";
-      if (i < lit) { cell.style.background = meta.cell; cell.style.opacity = "1"; cell.style.boxShadow = "1px 1px 2px var(--sh-d)"; }
+      if (i < lit) {
+        cell.style.background = meta.cell;
+        cell.classList.add("lit");
+        cell.style.animationDelay = (i * 22) + "ms";
+      }
       confCells.appendChild(cell);
     }
     $("conf-readout").textContent = msg.confidence.toFixed(3) + " grounding score";
@@ -649,6 +855,7 @@
       docs.slice(0, 3).forEach((d, i) => {
         const row = document.createElement("div");
         row.className = "cited-doc";
+        row.style.animationDelay = (140 + i * 70) + "ms";
         row.innerHTML = `<span class="n">[${i + 1}]</span><span class="title">${escapeHtml((d.content || "").slice(0, 90))}${(d.content || "").length > 90 ? "…" : ""} <span class="src">· ${escapeHtml(d.doc_id)}</span></span><span class="score">${Number(d.score).toFixed(2)}</span>`;
         citedDocs.appendChild(row);
       });
@@ -742,7 +949,7 @@
   sendBtn.addEventListener("click", () => submitQuery(queryInput.value.trim()));
 
   // ============================================================
-  // "Try one" example chips — real, tested queries spanning several
+  // "Fire a test event" chips — real, tested queries spanning several
   // languages, plus one deliberate off-topic example to show the
   // guardrail declining gracefully rather than guessing.
   // ============================================================
@@ -810,13 +1017,25 @@
 
   async function toggleRecording() {
     if (pendingRequestActive) return;
+    restartAnim(micBtn, "pressed");
     if (isRecording) { stopRecording(); return; }
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      showNotice("Not connected yet", "The live pipeline isn't connected — wait a moment or type your question instead.", { autoHideMs: 4000, actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] });
+      return;
+    }
 
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
+      const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+      showNotice(
+        denied ? "Microphone access blocked" : "Microphone unavailable",
+        denied
+          ? "Allow microphone access in your browser's site settings, or type your question instead."
+          : "No microphone was found on this device — type your question instead.",
+        { actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] }
+      );
       return;
     }
 
