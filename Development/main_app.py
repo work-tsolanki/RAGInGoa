@@ -126,12 +126,23 @@ DEMO_RATE_LIMIT_MESSAGE = (
 
 
 def _client_ip(request_or_websocket) -> str:
-    """Fly-Client-IP is set by Fly's own edge and overwritten on the way in,
-    so a client can't spoof it - unlike X-Forwarded-For, which any caller
-    can set to an arbitrary value and trivially defeat the per-IP rate
-    limit below (caught by automated security review before this shipped).
-    .client.host is the last-resort fallback for local dev, where there's
-    no Fly edge in front of the app at all."""
+    """Fly-Client-IP is set by Fly's edge proxy and confirmed (via
+    /debug/client_ip against the live deployment, key-gated) to be
+    overwritten on the way in regardless of what value a caller sends -
+    4 back-to-back requests spoofing different values all arrived at the
+    app as the same real source IP. request.client.host is NOT a usable
+    substitute here: Fly's proxy terminates the public connection and
+    forwards over its private 6PN network, so client.host is the proxy's
+    own internal address (e.g. 172.16.x.x) - identical for every request
+    regardless of caller, which would make the rate limit below a single
+    shared global budget instead of a per-caller one. (An earlier version
+    of this function used client.host after a rate-limit test appeared to
+    show the header being spoofed; that test result turned out to be a
+    false positive from the limiter's window naturally expiring between
+    test batches, not an actual bypass - re-tested back-to-back with no
+    delay before reverting to this.)
+    .client.host is still the fallback for local dev, where there's no
+    Fly edge in front of the app at all and this header won't be present."""
     fly_client_ip = request_or_websocket.headers.get("fly-client-ip")
     if fly_client_ip:
         return fly_client_ip
@@ -264,6 +275,21 @@ async def health_check():
             guardrails
         ])
     )
+
+
+@app.get("/debug/client_ip", dependencies=[Depends(verify_api_key)])
+async def debug_client_ip(request: Request):
+    """Temporary - added to verify what the rate limiter actually sees
+    (request.client.host) against reality on the live deployment, after a
+    header-trust assumption (Fly-Client-IP) turned out to be wrong. Remove
+    once that's confirmed. Key-gated (an unauthenticated version of this
+    briefly shipped and was caught by security review before being relied
+    on for anything - raw request headers can reveal infra details with no
+    legitimate reason to be public)."""
+    return {
+        "client_host": request.client.host if request.client else None,
+        "resolved_client_ip": _client_ip(request),
+    }
 
 @app.get("/debug/cache_stats", dependencies=[Depends(verify_api_key)])
 async def cache_stats():
@@ -896,6 +922,8 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
             target_language = request.get("language") or "en"
 
             if msg_type == "audio_stream_start":
+                if not await _check_demo_rate_limit():
+                    continue
                 await _close_stt_session()
                 if speculative_task is not None and not speculative_task.done():
                     speculative_task.cancel()
@@ -994,9 +1022,11 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
                     speculative_task.cancel()
                     speculative_task = None
 
-                if not await _check_demo_rate_limit():
-                    continue
-
+                # No rate-limit check here - this recording already spent its
+                # budget at audio_stream_start (see there for why: the STT
+                # cost happens regardless of whether the pipeline ever runs,
+                # so gating only here would let someone rack up real Sarvam
+                # cost per recording without it ever counting against them).
                 try:
                     await _run_query_pipeline(
                         websocket, query_text, top_k, target_language, pipeline_start, latency_breakdown
@@ -1025,6 +1055,14 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
                     await websocket.send_json({"stage": "error", "message": "audio_b64 is required"})
                     continue
 
+                # Checked before STT runs, not after - the Sarvam STT call
+                # below costs real money regardless of whether a query ever
+                # completes, so gating only around _run_query_pipeline would
+                # let that cost be run up for free (same reasoning as the
+                # audio_stream_start check above).
+                if not await _check_demo_rate_limit():
+                    continue
+
                 pipeline_start = time.time()
                 latency_breakdown = {}
                 try:
@@ -1051,9 +1089,6 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
                         "transcript": query_text,
                         "language_code": stt_result["language_code"],
                     })
-
-                    if not await _check_demo_rate_limit():
-                        continue
 
                     await _run_query_pipeline(
                         websocket, query_text, top_k, target_language, pipeline_start, latency_breakdown
