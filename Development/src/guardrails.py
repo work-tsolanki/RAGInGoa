@@ -52,16 +52,20 @@ _OFF_TOPIC_REFERENCE_QUERIES = [
     "bilateral trade vs multilateral trade",
     "significance of Isthmia in Greek mythology",
     "who was Harriet Tubman",
-    # General-science anchors added after corpus-coverage testing confirmed
+    # General-science anchor added after corpus-coverage testing confirmed
     # the corpus (post Aug 2026 MSMARCO-XI expansion) has genuinely correct
-    # content for these two topics specifically - NOT a blanket "let general
-    # trivia through" change. Queries like "what causes rainbows" or "what is
+    # content for this topic specifically - NOT a blanket "let general trivia
+    # through" change. Queries like "what causes rainbows" or "what is
     # compound interest" deliberately stay excluded: coverage testing showed
     # the corpus only has homonym-adjacent wrong content for those (e.g.
     # "compound interest" retrieves "equity interest" passages), so opening
     # the gate for them would trade a decline for a confidently wrong answer.
+    # "why do leaves change color in autumn" was tried and reverted: static
+    # coverage testing showed a genuinely relevant top-3 passage, but live
+    # generation actually grounded on an unrelated "indicators of chemical
+    # changes" passage instead and answered confidently wrong - the doc
+    # ranking retrieval sees isn't always the doc generation ends up using.
     "how does the human heart pump blood",
-    "why do leaves change color in autumn",
     "पासपोर्ट के लिए आवेदन कैसे करें",
     "गोवा किस लिए प्रसिद्ध है",
     "મતદાર ID માટે શું જરૂરી છે",
