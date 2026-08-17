@@ -220,12 +220,6 @@
   .stage-track{height:6px;background:var(--panel2);border-radius:var(--r4);margin-top:7px;}
   .stage-fill{height:100%;width:100%;border-radius:var(--r4);background:var(--yellow);transform:scaleX(0);transform-origin:left;transition:transform 240ms cubic-bezier(.2,.8,.2,1);}
   .stage-total{margin-top:var(--s5);display:flex;justify-content:space-between;font-size:var(--fs);letter-spacing:0.06em;text-transform:uppercase;border:1.5px dashed var(--border-strong);border-radius:var(--r1);padding:10px 14px;}
-  .log-doc{border-radius:var(--r1);padding:12px 14px;background:var(--panel2);margin-bottom:var(--s3);}
-  .log-doc-head{display:flex;gap:var(--s2);align-items:baseline;}
-  .log-doc-rank{font-weight:700;color:var(--pink-ink);flex:none;}
-  .log-doc-title{flex:1;min-width:0;font-size:var(--fs);}
-  .log-doc-score{font-size:var(--fs);font-weight:700;flex:none;}
-  .log-doc-meta{font-size:var(--fx);color:var(--ink2);margin-top:4px;}
   .log-empty{font-size:var(--fs);letter-spacing:0.06em;text-transform:uppercase;color:var(--ink2);}
 
   .footer-band{background:var(--green);color:var(--cream);border-radius:var(--r3);margin:var(--s6) 0 var(--s8);padding:var(--s6);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s5);align-items:end;}
@@ -497,10 +491,6 @@ finish review, the verdict, and DESIGN.md.
             <div id="stage-rows"></div>
             <div class="stage-total"><span>Total</span><span id="stage-total-val">—</span></div>
           </div>
-          <div>
-            <div class="log-col-title">Retrieved · hybrid dense + bm25s</div>
-            <div id="log-docs"></div>
-          </div>
         </div>
         <div class="log-empty" id="log-no-run">Socket open · no query yet. Ask something and the stage timings land here.</div>
       </div>
@@ -750,7 +740,6 @@ finish review, the verdict, and DESIGN.md.
       setPhase("done-answering");
       renderFinal(msg);
       renderStageTotal(msg.latency_breakdown);
-      renderLogDocs(msg.retrieved_documents);
       return;
     }
 
@@ -772,7 +761,6 @@ finish review, the verdict, and DESIGN.md.
     } else if (msg.status === "done") {
       markStageDone(stage, msg.latency_ms);
       if (stage === "stt" && msg.transcript) queryInput.value = msg.transcript;
-      if (stage === "merge" && msg.documents) renderLogDocs(msg.documents);
     }
   }
 
@@ -895,21 +883,7 @@ finish review, the verdict, and DESIGN.md.
   }
   function renderStageTotal(breakdown) {
     $("stage-total-val").textContent = Math.round(breakdown.total) + " ms";
-    $("log-summary").textContent = Math.round(breakdown.total) + " ms · " + (latestFinal && latestFinal.retrieved_documents ? latestFinal.retrieved_documents.length : 0) + " docs";
-  }
-  function renderLogDocs(docs) {
-    const el = $("log-docs");
-    if (!docs || !docs.length) { el.innerHTML = '<div class="log-empty">No documents retrieved.</div>'; return; }
-    el.innerHTML = "";
-    docs.forEach((d, i) => {
-      const row = document.createElement("div");
-      row.className = "log-doc";
-      row.innerHTML = `
-        <div class="log-doc-head"><span class="log-doc-rank">#${i + 1}</span><span class="log-doc-title">${escapeHtml((d.content || "").slice(0, 70))}${(d.content || "").length > 70 ? "…" : ""}</span><span class="log-doc-score">${Number(d.score).toFixed(3)}</span></div>
-        <div class="log-doc-meta">${escapeHtml(d.doc_id)}${d.chunking_strategy ? " · " + escapeHtml(d.chunking_strategy) : ""}</div>
-      `;
-      el.appendChild(row);
-    });
+    $("log-summary").textContent = Math.round(breakdown.total) + " ms";
   }
 
   // ============================================================
