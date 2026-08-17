@@ -194,9 +194,12 @@
   .conf-cell{flex:1;border-radius:var(--r4);background:var(--panel2);transform-origin:center;}
   .conf-cell.lit{animation:cell-light 260ms cubic-bezier(0.16,1,0.3,1) both;}
   .conf-readout{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.04em;color:var(--ink2);}
-  #answer-text{font-size:var(--fl);line-height:1.68;max-width:66ch;white-space:pre-wrap;}
+  #answer-text{font-size:var(--fl);line-height:1.68;max-width:66ch;white-space:pre-wrap;border-radius:var(--r1);padding:2px 10px;margin:0 -10px;background-color:transparent;transition:background-color 600ms ease;}
   #answer-text.streaming::after{content:"";display:inline-block;width:0.42em;height:1em;background:var(--pink);vertical-align:-0.14em;animation:hhblink 0.7s steps(1) infinite;}
-  .cited-title{color:var(--ink2);margin:var(--s6) 0 var(--s3);}
+  #cited-section{margin-top:var(--s6);}
+  .corpus-note{font-family:var(--sans);font-size:var(--fs);color:var(--ink2);margin-top:var(--s3);line-height:1.5;max-width:62ch;}
+  .corpus-note b{color:var(--card-ink);font-weight:600;}
+  .try-block.hidden{display:none;}
   .cited-doc{display:flex;gap:12px;align-items:baseline;border-radius:var(--r1);padding:13px 16px;background:var(--panel2);border:1.5px dashed var(--border-strong);margin-bottom:var(--s3);animation:hhrise 260ms cubic-bezier(0.16,1,0.3,1) both;}
   .cited-doc .n{font-family:var(--serif);font-weight:400;color:var(--pink-ink);flex:none;}
   .cited-doc .title{flex:1;min-width:0;font-size:var(--fm);}
@@ -455,10 +458,14 @@ finish review, the verdict, and DESIGN.md.
     <div class="phases" id="phases" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <div class="try-title label">Fire a test event
-    <svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="corpus-note" id="corpus-note">Think of this as a <b>general-knowledge lookup</b>, not a search engine — it can't answer about specific people, current events, or local details. Broad questions like "What is a corporation?" or "How does photosynthesis work?" tend to get a confident answer. Very specific, local, or "right now" questions usually come back <b>uncertain</b> or with <b>no answer</b> — that means it's being honest about not knowing, not that it's broken.</div>
+
+  <div class="try-block" id="try-block">
+    <div class="try-title label">Fire a test event
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="chips" id="chips"></div>
   </div>
-  <div class="chips" id="chips"></div>
 
   <div class="answer-wrap" id="answer-wrap">
     <div class="answer-box panel" id="answer-box">
@@ -479,7 +486,6 @@ finish review, the verdict, and DESIGN.md.
       </div>
       <div id="answer-text"></div>
       <div id="cited-section" style="display:none;">
-        <div class="cited-title label">Grounded in</div>
         <div id="cited-docs"></div>
       </div>
     </div>
@@ -785,9 +791,9 @@ finish review, the verdict, and DESIGN.md.
   // the brand's general alert accent for a hedged/uncertain answer, and
   // black = closed/declined (like the site's "RESULTS OUT" badge).
   function tierMeta(state) {
-    if (state === "declined") return { stamp: "DECLINED", tier: "No answer returned", box: "declined", rule: "declined", cell: "var(--black)", stampBg: "var(--black)", stampFg: "var(--on-black)", tierColor: "var(--ink)" };
-    if (state === "uncertain") return { stamp: "UNCERTAIN", tier: "Low confidence · hedged", box: "uncertain", rule: "uncertain", cell: "var(--pink)", stampBg: "var(--pink)", stampFg: "var(--on-pink)", tierColor: "var(--pink-ink)" };
-    return { stamp: "CONFIRMED", tier: "High confidence", box: "", rule: "", cell: "var(--yellow)", stampBg: "var(--yellow)", stampFg: "var(--on-yellow)", tierColor: "var(--yellow-ink)" };
+    if (state === "declined") return { stamp: "DECLINED", tier: "No answer returned", box: "declined", rule: "declined", cell: "var(--black)", stampBg: "var(--black)", stampFg: "var(--on-black)", tierColor: "var(--ink)", tint: "rgba(0,0,0,.05)" };
+    if (state === "uncertain") return { stamp: "UNCERTAIN", tier: "Low confidence · hedged", box: "uncertain", rule: "uncertain", cell: "var(--pink)", stampBg: "var(--pink)", stampFg: "var(--on-pink)", tierColor: "var(--pink-ink)", tint: "rgba(255,0,128,.10)" };
+    return { stamp: "CONFIRMED", tier: "High confidence", box: "", rule: "", cell: "var(--yellow)", stampBg: "var(--yellow)", stampFg: "var(--on-yellow)", tierColor: "var(--yellow-ink)", tint: "rgba(254,225,1,.28)" };
   }
 
   function answerState(msg) {
@@ -845,6 +851,12 @@ finish review, the verdict, and DESIGN.md.
     const answerEl = $("answer-text");
     answerEl.classList.remove("streaming");
     answerEl.textContent = msg.answer;
+    // Highlight the answer in the state's own color (yellow/pink/black tint) —
+    // a brief delay before the color lands so it reads as a reveal, timed to
+    // settle alongside the stamp landing rather than appearing instantly.
+    answerEl.style.backgroundColor = "transparent";
+    void answerEl.offsetWidth;
+    setTimeout(() => { answerEl.style.backgroundColor = meta.tint; }, 160);
 
     const docs = msg.retrieved_documents || [];
     const citedSection = $("cited-section");
@@ -942,6 +954,7 @@ finish review, the verdict, and DESIGN.md.
     currentLang = micLanguage.value;
     resetPipelineUI();
     setPhase("thinking");
+    $("try-block").classList.add("hidden");
     ws.send(JSON.stringify({ query_text: text, language: currentLang }));
   }
 

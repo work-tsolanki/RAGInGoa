@@ -143,6 +143,7 @@ The signature shape device is the **chevron ribbon**: a `clip-path` arrow-notch 
 
 ### Chips
 - **Style (`.chip`):** pill, cream background, hairline border, Sora body text with an IBM Plex Mono language tag. Hover swaps border to pink.
+- **Lifecycle:** the whole "Fire a test event" block (`#try-block`) hides the moment a query is submitted (voice or text) and does not return — once a visitor has asked something, the suggestions have done their job and stop competing with the answer for attention.
 
 ### Cards / Containers (`.panel`)
 - **Corner Style:** `16px` radius.
@@ -161,8 +162,13 @@ Tri-state card reusing the brand's own status-badge colors: **CONFIRMED** (golde
 
 **Signature motion: the stamp lands.** When an answer resolves, the verdict badge animates in like a rubber stamp hitting cream paper — oversized and rotated, snapping down to a resting -2° tilt in 480ms (`cubic-bezier(0.16,1,0.3,1)`), reusing the brand's own physical stamp/badge language rather than a generic fade. The rule beneath it draws left-to-right (460ms) as the stamp settles, the confidence cells light up left-to-right in a fast stagger (22ms/cell), and citation rows rise in with a short stagger (70ms apart). This is the one authored focal sequence in the product — query fires (hero sun pulses) → pipeline runs (phase ribbon transitions) → verdict stamps down (this sequence) — and it is not to be diluted into a plain fade on future states.
 
+**The answer itself is highlighted**, not just the badge: `#answer-text` carries a soft background tint in the same state color as the stamp/rule/cells (yellow ~28% for confirmed, pink ~10% for uncertain, black ~5% for declined), fading in ~160ms after the text lands so the highlight reads as a reveal, not a static box. This threads the state color through every signal on the card — stamp, rule, confidence cells, and now the answer text itself — so confidence is legible even at a glance.
+
 ### Named Rules (motion)
 **The One-Stamp Rule.** The stamp-land motion is reserved for the verdict badge landing. Do not reuse it for routine UI feedback (buttons, toggles) — those get fast, quiet transitions instead, so the stamp keeps its authored weight.
+
+### Corpus Note
+A short, plain-language paragraph beneath the phase tracker, written for a non-technical visitor, not a fellow engineer: "a general-knowledge lookup, not a search engine," with two concrete example questions and a one-line explanation that an uncertain/no-answer result means the system is being honest, not broken. No dataset name, no ML terminology (earlier drafts named MSMARCO-XI and "open-domain" — cut for a normal reader). Persists after the "Fire a test event" chips are dismissed, since it answers the same "what can I ask" question the chips do, without needing them present. Body copy (Sora), not a label — a full sentence read at conversational size, never mono/uppercase.
 
 ### System Notice (signature component)
 The one visible surface for failures that would otherwise happen silently: a dropped/unreachable connection (with automatic backoff reconnect and a manual "Retry now"), denied or missing microphone access, and a backend pipeline error mid-query. Styled with the same black/dashed/diagonal-stripe language as the DECLINED answer state — reusing the brand's "closed" semantic — but rendered as its own banner near the query bar, never inside the answer card itself, so a system failure is never mistaken for an answered outcome. Connection loss auto-hides once reconnected; permission and pipeline errors carry a dismiss control.
