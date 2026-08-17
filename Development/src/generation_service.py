@@ -11,6 +11,8 @@ from config import (
     GROQ_TEMPERATURE, CEREBRAS_API_KEY, CEREBRAS_MODEL,
     CEREBRAS_MAX_TOKENS, CEREBRAS_TEMPERATURE, GENERATION_BACKEND_ORDER,
     LOCAL_LLM_MODEL_PATH, LOCAL_LLM_N_CTX, LOCAL_LLM_MAX_TOKENS, LOCAL_LLM_N_GPU_LAYERS,
+    GROQ_REQUEST_TIMEOUT_S, CEREBRAS_REQUEST_TIMEOUT_S, CLAUDE_REQUEST_TIMEOUT_S,
+    GENERATION_SDK_MAX_RETRIES,
 )
 from src.latency_tracker import track_latency, get_tracker
 
@@ -119,7 +121,11 @@ class GenerationService:
 
         if GROQ_API_KEY:
             from groq import Groq
-            self.groq_client = Groq(api_key=GROQ_API_KEY)
+            self.groq_client = Groq(
+                api_key=GROQ_API_KEY,
+                timeout=GROQ_REQUEST_TIMEOUT_S,
+                max_retries=GENERATION_SDK_MAX_RETRIES,
+            )
             if DEBUG:
                 print("[GenerationService] Groq primary backend enabled")
         elif DEBUG:
@@ -127,7 +133,11 @@ class GenerationService:
 
         if CEREBRAS_API_KEY:
             from cerebras.cloud.sdk import Cerebras
-            self.cerebras_client = Cerebras(api_key=CEREBRAS_API_KEY)
+            self.cerebras_client = Cerebras(
+                api_key=CEREBRAS_API_KEY,
+                timeout=CEREBRAS_REQUEST_TIMEOUT_S,
+                max_retries=GENERATION_SDK_MAX_RETRIES,
+            )
             if DEBUG:
                 print("[GenerationService] Cerebras backend enabled (benchmarked-but-not-promoted)")
         elif DEBUG:
@@ -157,7 +167,11 @@ class GenerationService:
 
         if ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "mock":
             import anthropic
-            self.claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            self.claude_client = anthropic.Anthropic(
+                api_key=ANTHROPIC_API_KEY,
+                timeout=CLAUDE_REQUEST_TIMEOUT_S,
+                max_retries=GENERATION_SDK_MAX_RETRIES,
+            )
             if DEBUG:
                 print("[GenerationService] Claude fallback enabled")
 

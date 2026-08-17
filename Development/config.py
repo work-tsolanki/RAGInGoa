@@ -75,6 +75,25 @@ _backend_order_override = os.getenv("GENERATION_BACKEND_ORDER_OVERRIDE")
 if _backend_order_override:
     GENERATION_BACKEND_ORDER = [b.strip() for b in _backend_order_override.split(",") if b.strip()]
 
+# Per-backend request timeout + SDK retry cap. None of the hosted-API
+# clients (groq, cerebras, anthropic) had a timeout set before this - each
+# just used its SDK's own default (tens of seconds), so a single degraded
+# Groq request could block the whole fallback chain from ever reaching
+# local/Claude. Measured live (benchmark/percentile_batch_results.json):
+# generation P50=261ms, P70=309ms, but P100=13851ms - a ~45x blowout from
+# exactly this gap, not from the model itself being slow. These timeouts
+# are set with wide margin above the real P70 (10x+) so a normal request is
+# never at risk of a false-fallback, while still bounding the worst case
+# to single-digit seconds instead of double digits. max_retries=0 because
+# GENERATION_BACKEND_ORDER is already our retry policy (try the next
+# backend) - stacking the SDK's own internal retry (2, by default) on top
+# would multiply the timeout instead of shortening the tail.
+GROQ_REQUEST_TIMEOUT_S = 3.0
+CEREBRAS_REQUEST_TIMEOUT_S = 3.0
+CLAUDE_REQUEST_TIMEOUT_S = 5.0  # last-resort fallback before extractive; a little
+                                 # more headroom since correctness matters more here
+GENERATION_SDK_MAX_RETRIES = 0
+
 # Sarvam AI: Speech-to-Text (Saarika model) for /query_audio. REST API, no
 # official Python SDK - see src/stt_service.py. Get a key at
 # https://dashboard.sarvam.ai (free tier available). Left as "mock" (the
