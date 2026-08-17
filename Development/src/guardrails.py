@@ -4,7 +4,7 @@ import re
 import numpy as np
 import torch
 
-from config import DEBUG
+from config import DEBUG, GROUNDING_CHECK_MAX_DOCS
 from src.latency_tracker import track_latency
 
 _WORD_RE = re.compile(r"[a-zA-Zऀ-ॿ஀-௿]+")
@@ -52,6 +52,16 @@ _OFF_TOPIC_REFERENCE_QUERIES = [
     "bilateral trade vs multilateral trade",
     "significance of Isthmia in Greek mythology",
     "who was Harriet Tubman",
+    # General-science anchors added after corpus-coverage testing confirmed
+    # the corpus (post Aug 2026 MSMARCO-XI expansion) has genuinely correct
+    # content for these two topics specifically - NOT a blanket "let general
+    # trivia through" change. Queries like "what causes rainbows" or "what is
+    # compound interest" deliberately stay excluded: coverage testing showed
+    # the corpus only has homonym-adjacent wrong content for those (e.g.
+    # "compound interest" retrieves "equity interest" passages), so opening
+    # the gate for them would trade a decline for a confidently wrong answer.
+    "how does the human heart pump blood",
+    "why do leaves change color in autumn",
     "पासपोर्ट के लिए आवेदन कैसे करें",
     "गोवा किस लिए प्रसिद्ध है",
     "મતદાર ID માટે શું જરૂરી છે",
@@ -204,14 +214,24 @@ class Guardrails:
 
     @track_latency("grounding_check")
     def check_grounding(self, answer: str, retrieved_docs: list) -> float:
-        """Score how well the answer is supported by the retrieved documents."""
+        """Score how well the answer is supported by the retrieved documents.
+
+        Only scores the top GROUNDING_CHECK_MAX_DOCS of retrieved_docs (which
+        arrives already ranked, most-relevant first, from merge_and_rank) -
+        the score below is always max(per-doc scores), so anything past the
+        top few is CPU time spent without changing the result on the
+        overwhelming majority of queries. See config.py's GROUNDING_CHECK_MAX_DOCS
+        docstring for the real (if occasional) accuracy tradeoff this carries.
+        """
         if not answer or not answer.strip() or not retrieved_docs:
             return 0.0
 
+        docs_to_score = retrieved_docs[:GROUNDING_CHECK_MAX_DOCS]
+
         if self.cross_encoder is not None:
-            score = self._check_grounding_cross_encoder(answer, retrieved_docs)
+            score = self._check_grounding_cross_encoder(answer, docs_to_score)
         else:
-            score = self._check_grounding_word_overlap(answer, retrieved_docs)
+            score = self._check_grounding_word_overlap(answer, docs_to_score)
 
         if DEBUG:
             print(f"[check_grounding] Score: {score:.4f}")

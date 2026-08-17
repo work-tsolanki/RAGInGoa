@@ -23,6 +23,25 @@ EMBEDDING_DIMENSION = 384
 TOP_K_RETRIEVAL = 10
 TOP_K_FINAL = 5
 
+# check_grounding only ever uses max(scores) across the retrieved docs it's
+# given (see guardrails.py) - it doesn't need all TOP_K_FINAL, just the
+# best-supporting one. Live production measured grounding_check at
+# P50=874ms (CPU-bound cross-encoder, see /metrics) scoring all 5; cutting
+# to the top-2 highest-ranked docs (merge_and_rank already sorts by
+# relevance, descending) should cut that roughly in proportion. Real
+# caveat, not a free win: retrieval ranks doc-to-QUERY relevance, not
+# doc-to-GENERATED-ANSWER support, so on paraphrased answers the
+# best-supporting doc is occasionally #3-5, not #1-2 - and
+# ANSWER_CACHE_MIN_GROUNDING=0.7 below was calibrated scoring all 5
+# (benchmark/grounding_calibration_raw.json). Verify score/hedge-rate
+# impact empirically before trusting this blind - see
+# benchmark/run_percentile_batch.py for the harness. Independent of
+# TOP_K_FINAL (which still controls what feeds the generation prompt).
+# Defaults to TOP_K_FINAL (i.e. current, already-shipped behavior - score
+# everything retrieved) until the empirical check above says otherwise;
+# override via env for that test, don't flip the default until then.
+GROUNDING_CHECK_MAX_DOCS = int(os.getenv("GROUNDING_CHECK_MAX_DOCS", str(TOP_K_FINAL)))
+
 MAX_LATENCY_MS = 200
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
