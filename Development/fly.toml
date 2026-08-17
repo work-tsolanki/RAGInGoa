@@ -12,7 +12,7 @@ primary_region = "sin"  # Singapore - bom (Mumbai) had no VM capacity available 
   # tag/digest before deploying - don't leave it unpinned, or the next bare
   # `fly deploy` rebuilds from source and silently drifts from what was
   # actually verified.
-  image = "registry.fly.io/ragingoa:deployment-01M06M6A5Z3JE79DWY85K1K3M2@sha256:cafe04b5f2e8e58c114976ad2055ca6be791f36f6efd05737d6b83d707dffd4a"
+  image = "registry.fly.io/ragingoa:deployment-01M085F10F2D0Y1RSV452PPMPP@sha256:26adea371ed5fd27322d573f2458821686175712c949d4f604749eaaf809949e"
 
 [env]
   # Local llama.cpp fallback needs a GPU; Fly's standard machines don't have
@@ -42,9 +42,10 @@ primary_region = "sin"  # Singapore - bom (Mumbai) had no VM capacity available 
 
 [[vm]]
   cpu_kind = "shared"
-  cpus = 2            # shared-cpu machines cap memory at 2048MB per vCPU - 2 vCPUs needed to
-                      # unlock 4096MB (a 1-vCPU/4096MB combo is rejected by Fly outright)
-  memory_mb = 4096   # headroom for torch + sentence-transformers + opening the Chroma DB at
-                      # boot. (The earlier "created, but never started" failures turned out
-                      # to be the oversized image, not memory - see .dockerignore/[env] above -
-                      # but this is still a reasonable margin for the actual workload.)
+  cpus = 4            # shared-cpu machines cap memory at 2048MB per vCPU - 4 vCPUs needed to
+                      # unlock 8192MB (a 2-vCPU/8192MB combo is rejected by Fly outright)
+  memory_mb = 8192   # bumped from 4096 after the corpus expansion (743k -> 1.04M chunks,
+                      # chroma_db 3.7G -> 5.0G) pushed boot-time RSS to ~3.57GB out of the old
+                      # 4.01GB total - right at the OOM edge while loading the embedding model,
+                      # cross-encoder, and touching the larger Chroma/BM25 indexes. Confirmed via
+                      # `flyctl ssh console -C "cat /proc/<uvicorn-pid>/status"` mid-boot.
