@@ -126,7 +126,7 @@ Real, offset card shadows — `0 10px 24px rgba(11,60,35,.14), 0 2px 4px rgba(11
 
 ## Shapes
 
-Generous, friendly radii (`8px`/`16px`/`22px`) on cards and bands — nothing angular or instrument-panel-like. Buttons, chips, badges, and the brand pill are always fully rounded (`999px`), matching the official site's pill buttons exactly. Dashed borders (`1.5px dashed`) mark secondary/framing elements — stat boxes, the recording mic button, citation rows — echoing the brand's dashed-circle badge motif.
+Generous, friendly radii (`8px`/`16px`/`22px`) on cards and bands — nothing angular or instrument-panel-like. Buttons, chips, badges, and the brand pill are always fully rounded (`999px`), matching the official site's pill buttons exactly. Dashed borders (`1.5px dashed`) mark secondary/framing elements — stat boxes, the recording mic button, the developer log's retrieved-document rows — echoing the brand's dashed-circle badge motif.
 
 The signature shape device is the **chevron ribbon**: a `clip-path` arrow-notch shape used for the phase tracker, directly translating the official site's timeline-ribbon graphic into a live pipeline-stage indicator.
 
@@ -149,7 +149,7 @@ The signature shape device is the **chevron ribbon**: a `clip-path` arrow-notch 
 - **Corner Style:** `16px` radius.
 - **Background:** always cream/white (`--panel`), regardless of theme.
 - **Shadow Strategy:** real offset shadow — see Elevation & Depth.
-- **Border:** none by default; dashed hairline on framing sub-elements (stat boxes, citation rows).
+- **Border:** none by default; dashed hairline on framing sub-elements (stat boxes, developer-log document rows).
 
 ### Stat / Telemetry Card
 - **Style:** 2×2 grid of dashed-border cells inside the cream hero card. Numbers in Rozha One; labels in IBM Plex Mono uppercase.
@@ -158,9 +158,12 @@ The signature shape device is the **chevron ribbon**: a `clip-path` arrow-notch 
 A row of chevron-clipped segments (`.phase-pill`) reading the pipeline stage. Past segments: cream-dim fill. Current segment: solid golden-yellow, bold. Future segments: dimmed. Below 720px it becomes a horizontal-scroll strip rather than compressing. Segment color/opacity changes transition (220ms ease) rather than snapping, so progress through the pipeline reads as continuous motion.
 
 ### Answer Verdict Panel
-Tri-state card reusing the brand's own status-badge colors: **CONFIRMED** (golden yellow — the brand's "active" color), **UNCERTAIN** (hot pink, dashed rule), **DECLINED** (black border, dashed black rule, diagonal cream-stripe background — the brand's "closed" color). A 12-cell confidence bar lit in the state color, a tabular grounding-score readout, and — when applicable — citation rows with the rank number set in Rozha One italic-free serif and a dashed border frame.
+Tri-state card reusing the brand's own status-badge colors: **CONFIRMED** (golden yellow — the brand's "active" color), **UNCERTAIN** (hot pink, dashed rule), **DECLINED** (black border, dashed black rule, diagonal cream-stripe background — the brand's "closed" color). A 12-cell confidence bar lit in the state color and a tabular grounding-score readout — the card stops there; it does not surface retrieved-document citations (see Named Rule below). The highlighted answer text is the card's only content beyond the verdict chrome.
 
-**Signature motion: the stamp lands.** When an answer resolves, the verdict badge animates in like a rubber stamp hitting cream paper — oversized and rotated, snapping down to a resting -2° tilt in 480ms (`cubic-bezier(0.16,1,0.3,1)`), reusing the brand's own physical stamp/badge language rather than a generic fade. The rule beneath it draws left-to-right (460ms) as the stamp settles, the confidence cells light up left-to-right in a fast stagger (22ms/cell), and citation rows rise in with a short stagger (70ms apart). This is the one authored focal sequence in the product — query fires (hero sun pulses) → pipeline runs (phase ribbon transitions) → verdict stamps down (this sequence) — and it is not to be diluted into a plain fade on future states.
+**Signature motion: the stamp lands.** When an answer resolves, the verdict badge animates in like a rubber stamp hitting cream paper — oversized and rotated, snapping down to a resting -2° tilt in 480ms (`cubic-bezier(0.16,1,0.3,1)`), reusing the brand's own physical stamp/badge language rather than a generic fade. The rule beneath it draws left-to-right (460ms) as the stamp settles, and the confidence cells light up left-to-right in a fast stagger (22ms/cell). This is the one authored focal sequence in the product — query fires (hero sun pulses) → pipeline runs (phase ribbon transitions) → verdict stamps down (this sequence) — and it is not to be diluted into a plain fade on future states.
+
+### Named Rules (answer card)
+**The Card-Is-The-Answer Rule.** The primary answer card shows the verdict, confidence, and the answer text — nothing else. Retrieved-document citations are real and available, but live one layer deeper in the developer log, not inline on the card; don't reintroduce a citation list here without a deliberate product decision to do so.
 
 **The answer itself is highlighted**, not just the badge: `#answer-text` carries a soft background tint in the same state color as the stamp/rule/cells (yellow ~28% for confirmed, pink ~10% for uncertain, black ~5% for declined), fading in ~160ms after the text lands so the highlight reads as a reveal, not a static box. This threads the state color through every signal on the card — stamp, rule, confidence cells, and now the answer text itself — so confidence is legible even at a glance.
 

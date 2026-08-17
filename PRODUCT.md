@@ -31,10 +31,10 @@ Live, on-stage/on-table hackathon demo: presenter or judge speaks or types a que
 - Voice input via mic (Sarvam STT, language selector) and text input.
 - Retrieval pipeline shows phase progress (STT → retrieval → generation → grounding).
 - Answer states: grounded/confident, uncertain, and declined-to-answer (guardrail triggered) — each must read as visually distinct outcomes, not just color swaps.
-- Confidence tier and per-document citation with relevance score shown per answer.
-- Expandable raw log panel for technical/judge scrutiny.
+- Confidence tier shown per answer. Per-document citation with relevance score is deliberately not shown on the primary answer card (kept in the expandable developer log instead) — the card surfaces the answer and its confidence, not the retrieved passages themselves.
+- Expandable raw log panel for technical/judge scrutiny (this is now the only place retrieved/cited documents are shown).
 - Connection/live status indicator (system may be online/offline).
-- Sample "try it" query chips for fast demo starts.
+- Sample "try it" query chips for fast demo starts; hide once a question has been asked so they stop competing with the answer.
 - Latency and stats surfaced prominently (this is a claimed differentiator, not incidental).
 
 ## Brand Commitments
@@ -58,7 +58,7 @@ Live backend at `Development/main_app.py` with real retrieval/generation/guardra
 
 ## Product Principles
 
-1. Trust is earned by showing work: latency, retrieval phases, confidence, and citations are core content, not chrome.
+1. Trust is earned by showing work: latency, retrieval phases, and confidence are core content on the answer card itself, not chrome; citations are real and available (developer log), but live one layer deeper so the primary card stays focused on the answer.
 2. The demo must read correctly cold, in seconds, to someone who has never seen it — a judge, not a teammate.
 3. Distinguish confident, uncertain, and declined answers unmistakably; a wrong-but-confident-looking answer undermines the positioning.
 4. Must perform well live on both a presenter's laptop and a judge's own phone.

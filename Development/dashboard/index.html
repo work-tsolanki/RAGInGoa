@@ -196,15 +196,9 @@
   .conf-readout{font-family:var(--mono);font-size:var(--fx);letter-spacing:0.04em;color:var(--ink2);}
   #answer-text{font-size:var(--fl);line-height:1.68;max-width:66ch;white-space:pre-wrap;border-radius:var(--r1);padding:2px 10px;margin:0 -10px;background-color:transparent;transition:background-color 600ms ease;}
   #answer-text.streaming::after{content:"";display:inline-block;width:0.42em;height:1em;background:var(--pink);vertical-align:-0.14em;animation:hhblink 0.7s steps(1) infinite;}
-  #cited-section{margin-top:var(--s6);}
   .corpus-note{font-family:var(--sans);font-size:var(--fs);color:var(--ink2);margin-top:var(--s3);line-height:1.5;max-width:62ch;}
   .corpus-note b{color:var(--card-ink);font-weight:600;}
   .try-block.hidden{display:none;}
-  .cited-doc{display:flex;gap:12px;align-items:baseline;border-radius:var(--r1);padding:13px 16px;background:var(--panel2);border:1.5px dashed var(--border-strong);margin-bottom:var(--s3);animation:hhrise 260ms cubic-bezier(0.16,1,0.3,1) both;}
-  .cited-doc .n{font-family:var(--serif);font-weight:400;color:var(--pink-ink);flex:none;}
-  .cited-doc .title{flex:1;min-width:0;font-size:var(--fm);}
-  .cited-doc .src{color:var(--ink2);}
-  .cited-doc .score{font-family:var(--mono);font-size:var(--fs);flex:none;}
 
   .log-wrap{padding:var(--s6) 0;}
   .log-box{border:1.5px solid var(--border);}
@@ -485,9 +479,6 @@ finish review, the verdict, and DESIGN.md.
         <span class="conf-readout" id="conf-readout"></span>
       </div>
       <div id="answer-text"></div>
-      <div id="cited-section" style="display:none;">
-        <div id="cited-docs"></div>
-      </div>
     </div>
   </div>
 
@@ -857,23 +848,6 @@ finish review, the verdict, and DESIGN.md.
     answerEl.style.backgroundColor = "transparent";
     void answerEl.offsetWidth;
     setTimeout(() => { answerEl.style.backgroundColor = meta.tint; }, 160);
-
-    const docs = msg.retrieved_documents || [];
-    const citedSection = $("cited-section");
-    const citedDocs = $("cited-docs");
-    if (state !== "declined" && docs.length) {
-      citedSection.style.display = "block";
-      citedDocs.innerHTML = "";
-      docs.slice(0, 3).forEach((d, i) => {
-        const row = document.createElement("div");
-        row.className = "cited-doc";
-        row.style.animationDelay = (140 + i * 70) + "ms";
-        row.innerHTML = `<span class="n">[${i + 1}]</span><span class="title">${escapeHtml((d.content || "").slice(0, 90))}${(d.content || "").length > 90 ? "…" : ""} <span class="src">· ${escapeHtml(d.doc_id)}</span></span><span class="score">${Number(d.score).toFixed(2)}</span>`;
-        citedDocs.appendChild(row);
-      });
-    } else {
-      citedSection.style.display = "none";
-    }
   }
 
   $("copy-btn").addEventListener("click", () => {
