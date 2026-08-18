@@ -5,7 +5,7 @@ Voice-enabled RAG system built for HH Goa 2026 Task 2. Speak or type a question 
 **Live:** https://ragingoa.fly.dev
 **Dashboard:** https://ragingoa.fly.dev/dashboard
 
-> **Latency is above the spec's 200ms target.** Read [`TRADEOFFS.md`](TRADEOFFS.md) first — it explains why (CPU-only hosting, no India region, corpus size) with real measured numbers, not guesses.
+> **Latency is above the spec's 200ms target.** Read [`TRADEOFFS.md`](TRADEOFFS.md) first: it explains why (CPU-only hosting, no India region, corpus size) with real measured numbers, not guesses.
 
 ## Pipeline
 
@@ -13,7 +13,7 @@ Voice-enabled RAG system built for HH Goa 2026 Task 2. Speak or type a question 
 Voice/text input → Speech-to-text → Chunking/Retrieval (vector DB) → Guardrails → Answer generation
 ```
 
-- **STT:** Sarvam (`src/stt_service.py`) — batch + realtime streaming
+- **STT:** Sarvam (`src/stt_service.py`), batch + realtime streaming
 - **Chunking:** fixed-overlap + semantic-boundary sub-chunking on top of whole-passage entries (`src/chunking/`), metadata-aware dedup at retrieval time
 - **Retrieval:** hybrid dense (ChromaDB) + sparse (BM25s), weighted fusion (`src/retrieval.py`)
 - **Generation:** Groq primary, Claude fallback, structured backend chain with timeouts/retries (`src/generation_service.py`)
@@ -29,7 +29,7 @@ cp .env.example .env   # fill in GROQ_API_KEY, ANTHROPIC_API_KEY, SARVAM_API_KEY
 uvicorn main_app:app --reload
 ```
 
-Dataset: [`ai4bharat/MSMARCO-XI`](https://huggingface.co/datasets/ai4bharat/MSMARCO-XI) — see `scripts/download_dataset.py` and `scripts/expand_dataset.py` to build the corpus, then `scripts/chunk_and_index.py` + `scripts/build_bm25s_index.py` to index it.
+Dataset: [`ai4bharat/MSMARCO-XI`](https://huggingface.co/datasets/ai4bharat/MSMARCO-XI). See `scripts/download_dataset.py` and `scripts/expand_dataset.py` to build the corpus, then `scripts/chunk_and_index.py` + `scripts/build_bm25s_index.py` to index it.
 
 ## Tests
 

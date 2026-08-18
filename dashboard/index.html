@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Hacker House Goa — RAGInGoa</title>
+<title>Hacker House Goa: RAGInGoa</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230B6839'/%3E%3Ccircle cx='16' cy='17' r='7' fill='%23FEE101'/%3E%3Crect y='24' width='32' height='8' fill='%23FFFBE8'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
@@ -344,7 +344,7 @@ finish review, the verdict, and DESIGN.md.
     <div class="how-title label">How this works</div>
     <div class="how-item"><span class="how-num">01</span><span style="font-size:var(--fm);">You speak or type in any of 14 Indian languages. Sarvam transcribes live; the query is embedded as-is.</span></div>
     <div class="how-item"><span class="how-num">02</span><span style="font-size:var(--fm);">Dense vectors (ChromaDB) and keyword hits (bm25s) are merged over a live corpus of 858,768 passages.</span></div>
-    <div class="how-item"><span class="how-num">03</span><span style="font-size:var(--fm);">Groq (Claude as fallback) generates the answer, streamed live. Every answer is checked back against the retrieved passages — off-topic or ungrounded questions are declined or hedged, not guessed.</span></div>
+    <div class="how-item"><span class="how-num">03</span><span style="font-size:var(--fm);">Groq (Claude as fallback) generates the answer, streamed live. Every answer is checked back against the retrieved passages. Off-topic or ungrounded questions are declined or hedged, not guessed.</span></div>
   </div>
 
   <div class="hero-band">
@@ -371,7 +371,7 @@ finish review, the verdict, and DESIGN.md.
           <span>Hacker</span>
           <span>House <span class="goa">गोवा</span></span>
         </h1>
-        <p class="tagline">Ask a question out loud, in your language. Answers come back grounded in a live document corpus — with the machinery shown.</p>
+        <p class="tagline">Ask a question out loud, in your language. Answers come back grounded in a live document corpus, with the machinery shown.</p>
         <div class="hero-badges">
           <span class="ribbon">
             <svg viewBox="0 0 24 24" aria-hidden="true" style="width:17px;height:17px;flex:none;"><path d="M9.5 3.5 7 20.5M17 3.5 14.5 20.5M3.8 8.7h17M3 15.3h17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -397,7 +397,7 @@ finish review, the verdict, and DESIGN.md.
 
   <div class="qbar-wrap">
     <div class="qbar">
-      <input id="query-input" type="text" placeholder="Ask anything — किसी भी भाषा में…" autocomplete="off" aria-label="Ask a question in any language" />
+      <input id="query-input" type="text" placeholder="Ask anything: किसी भी भाषा में…" autocomplete="off" aria-label="Ask a question in any language" />
       <button type="button" id="mic-btn" aria-label="Ask by voice" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;flex:none;"><path d="M12 3v10M12 13a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v2a4 4 0 0 0 4 4Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M6 12a6 6 0 0 0 12 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         <span id="mic-label">Speak</span>
@@ -446,7 +446,7 @@ finish review, the verdict, and DESIGN.md.
     <div class="phases" id="phases" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <div class="corpus-note" id="corpus-note">Think of this as a <b>general-knowledge lookup</b>, not a search engine — it can't answer about specific people, current events, or local details. Broad questions like "What is a corporation?" or "How does photosynthesis work?" tend to get a confident answer. Very specific, local, or "right now" questions usually come back <b>uncertain</b> or with <b>no answer</b> — that means it's being honest about not knowing, not that it's broken.</div>
+  <div class="corpus-note" id="corpus-note">Think of this as a <b>general-knowledge lookup</b>, not a search engine. It can't answer about specific people, current events, or local details. Broad questions like "What is a corporation?" or "How does photosynthesis work?" tend to get a confident answer. Very specific, local, or "right now" questions usually come back <b>uncertain</b> or with <b>no answer</b>, that means it's being honest about not knowing, not that it's broken.</div>
 
   <div class="try-block" id="try-block">
     <div class="try-title label">Fire a test event
@@ -684,7 +684,7 @@ finish review, the verdict, and DESIGN.md.
     if (connectAttempts >= 2) {
       showNotice(
         "Connection lost",
-        "The live pipeline is unreachable — retrying automatically every few seconds.",
+        "The live pipeline is unreachable. Retrying automatically every few seconds.",
         { actions: [{ label: "Retry now", onClick: reconnectNow }] }
       );
     }
@@ -981,7 +981,7 @@ finish review, the verdict, and DESIGN.md.
     restartAnim(micBtn, "pressed");
     if (isRecording) { stopRecording(); return; }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      showNotice("Not connected yet", "The live pipeline isn't connected — wait a moment or type your question instead.", { autoHideMs: 4000, actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] });
+      showNotice("Not connected yet", "The live pipeline isn't connected. Wait a moment or type your question instead.", { autoHideMs: 4000, actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] });
       return;
     }
 
@@ -994,7 +994,7 @@ finish review, the verdict, and DESIGN.md.
         denied ? "Microphone access blocked" : "Microphone unavailable",
         denied
           ? "Allow microphone access in your browser's site settings, or type your question instead."
-          : "No microphone was found on this device — type your question instead.",
+          : "No microphone was found on this device. Type your question instead.",
         { actions: [{ label: "Dismiss", dismiss: true, onClick: hideNotice }] }
       );
       return;
