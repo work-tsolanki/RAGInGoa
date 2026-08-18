@@ -19,7 +19,7 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import sys
 sys.path.insert(0, '.')
@@ -158,8 +158,17 @@ def verify_demo_rate_limit(http_request: Request):
 # Data Models
 # ============================================================================
 
+# Bounds the public, rate-limited-but-not-size-limited /demo/query and
+# /ws/demo paths - a real spoken/typed question is well under this; without
+# it an unauth'd caller could repeatedly send oversized payloads within the
+# rate-limit window. Enforced twice: Pydantic validates it on the REST path
+# (QueryRequest below), but /ws/demo and /ws/query parse raw JSON and never
+# go through that model, so _ws_handler checks it explicitly too.
+MAX_QUERY_TEXT_LENGTH = 500
+
+
 class QueryRequest(BaseModel):
-    query_text: str
+    query_text: str = Field(..., max_length=MAX_QUERY_TEXT_LENGTH)
     language: Optional[str] = "en"
     top_k: Optional[int] = TOP_K_FINAL
 
@@ -1112,6 +1121,12 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
             query_text = (request.get("query_text") or "").strip()
             if not query_text:
                 await websocket.send_json({"stage": "error", "message": "Query cannot be empty"})
+                continue
+            if len(query_text) > MAX_QUERY_TEXT_LENGTH:
+                await websocket.send_json({
+                    "stage": "error",
+                    "message": f"Query is too long (max {MAX_QUERY_TEXT_LENGTH} characters)",
+                })
                 continue
 
             if not await _check_demo_rate_limit():
