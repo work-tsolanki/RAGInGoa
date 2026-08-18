@@ -5,6 +5,8 @@ Voice-enabled RAG system built for HH Goa 2026 Task 2. Speak or type a question 
 **Live:** https://ragingoa.fly.dev
 **Dashboard:** https://ragingoa.fly.dev/dashboard
 
+> **Latency is above the spec's 200ms target.** Read [`TRADEOFFS.md`](TRADEOFFS.md) first — it explains why (CPU-only hosting, no India region, corpus size) with real measured numbers, not guesses.
+
 ## Pipeline
 
 ```
