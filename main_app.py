@@ -909,9 +909,17 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
     stt_session = None
     stt_listen_task = None
     stt_stream_state = None
+    # Language the in-progress recording was opened with (from
+    # audio_stream_start's `language`) - audio_stream_end carries no
+    # `language` field of its own (see dashboard's ws.send for that message),
+    # so re-reading target_language off *that* message at the top of the loop
+    # would silently fall back to "en" regardless of what language was
+    # actually recorded in. Must be read back at audio_stream_end time
+    # instead of relying on the loop-local target_language variable.
+    stt_target_language = None
 
     async def _close_stt_session():
-        nonlocal stt_session, stt_listen_task, stt_stream_state
+        nonlocal stt_session, stt_listen_task, stt_stream_state, stt_target_language
         if stt_listen_task is not None and not stt_listen_task.done():
             stt_listen_task.cancel()
         if stt_session is not None:
@@ -922,6 +930,7 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
         stt_session = None
         stt_listen_task = None
         stt_stream_state = None
+        stt_target_language = None
 
     try:
         while True:
@@ -956,6 +965,7 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
                         print(f"[ws_query] Failed to open realtime STT session: {e}")
                     await websocket.send_json({"stage": "error", "message": "Speech-to-text provider connection failed"})
                     continue
+                stt_target_language = target_language
                 stt_stream_state = {"final_parts": [], "ended": asyncio.Event(), "error": None, "detected_language": None}
                 stt_listen_task = asyncio.create_task(
                     _relay_realtime_stt(websocket, stt_session, target_language, stt_stream_state)
@@ -997,6 +1007,13 @@ async def _ws_handler(websocket: WebSocket, require_auth: bool = True):
                 query_text = " ".join(p for p in stt_stream_state["final_parts"] if p).strip()
                 stream_error = stt_stream_state["error"]
                 detected_sarvam_code = stt_stream_state["detected_language"]
+                # audio_stream_end carries no `language` field (see
+                # dashboard's ws.send for that message type), so the
+                # target_language read at the top of the loop for *this*
+                # message defaulted to "en" - use the language the recording
+                # was actually opened with instead. Must read this back
+                # before _close_stt_session() clears it.
+                target_language = stt_target_language or target_language
                 await _close_stt_session()
 
                 # Sarvam auto-detected the actual spoken language (see the
