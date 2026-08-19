@@ -895,11 +895,47 @@ finish review, the verdict, and DESIGN.md.
     renderStages();
   }
 
+  // The "Answer in" dropdown (micLanguage) defaults to English and is only
+  // ever changed explicitly by the user or by voice auto-detect (see
+  // audio_stream_start/transcript.final handling below) - it is never
+  // updated just because someone typed a question in another script. Left
+  // alone, a typed non-English query was sent with language="en" (the
+  // dropdown's default), so the LLM was told to answer in English and any
+  // decline message came back in English too, regardless of what script the
+  // question was actually written in. Detect the script of the typed text
+  // itself and prefer that over a stale/default dropdown value. Devanagari
+  // (hi/mr/ne) and Bengali-script (bn/as) are ambiguous by script alone -
+  // when the dropdown is already set to one language in that family, trust
+  // it over the generic script guess; otherwise fall back to the family's
+  // most common member. Pure Latin/ASCII text can't be distinguished from
+  // English by script, so that case still defers to the dropdown.
+  const SCRIPT_LANGUAGE_FAMILIES = [
+    { re: /[ঀ-৿]/, family: ["bn", "as"], primary: "bn" },   // Bengali/Assamese
+    { re: /[਀-੿]/, family: ["pa"], primary: "pa" },         // Gurmukhi
+    { re: /[઀-૿]/, family: ["gu"], primary: "gu" },         // Gujarati
+    { re: /[଀-୿]/, family: ["or"], primary: "or" },         // Odia
+    { re: /[஀-௿]/, family: ["ta"], primary: "ta" },         // Tamil
+    { re: /[ఀ-౿]/, family: ["te"], primary: "te" },         // Telugu
+    { re: /[ಀ-೿]/, family: ["kn"], primary: "kn" },         // Kannada
+    { re: /[ഀ-ൿ]/, family: ["ml"], primary: "ml" },         // Malayalam
+    { re: /[؀-ۿ]/, family: ["ur"], primary: "ur" },         // Arabic/Urdu
+    { re: /[ऀ-ॿ]/, family: ["hi", "mr", "ne"], primary: "hi" }, // Devanagari
+  ];
+
+  function detectQueryLanguage(text, dropdownValue) {
+    for (const { re, family, primary } of SCRIPT_LANGUAGE_FAMILIES) {
+      if (re.test(text)) return family.includes(dropdownValue) ? dropdownValue : primary;
+    }
+    return null;
+  }
+
   function submitQuery(text) {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN || pendingRequestActive) return;
     pendingRequestActive = true;
     currentQuery = text;
-    currentLang = micLanguage.value;
+    const detectedLang = detectQueryLanguage(text, micLanguage.value);
+    currentLang = detectedLang || micLanguage.value;
+    if (detectedLang && micLanguage.value !== detectedLang) micLanguage.value = detectedLang;
     resetPipelineUI();
     setPhase("thinking");
     $("try-block").classList.add("hidden");
