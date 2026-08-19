@@ -12,7 +12,7 @@ primary_region = "sin"  # Singapore - bom (Mumbai) had no VM capacity available 
   # tag/digest before deploying - don't leave it unpinned, or the next bare
   # `fly deploy` rebuilds from source and silently drifts from what was
   # actually verified.
-  image = "registry.fly.io/ragingoa:deployment-01M096TVPN30HTYW32Y6JD2K41@sha256:21be7f0a31560a1975e7c36c3fc59a74e9f91631dbda2b67dd68ddd6bff6b4cf"
+  image = "registry.fly.io/ragingoa:deployment-01M0E5Y9GC31ABNBT66Y61JWBX@sha256:c277eaa07051191d753f850d196a6286bfc2d754439b94de5b2b7f43fa450772"
 
 [env]
   # Local llama.cpp fallback needs a GPU; Fly's standard machines don't have
