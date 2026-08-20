@@ -59,11 +59,14 @@ LOCAL_LLM_MAX_TOKENS = 200
 # wasn't built with CUDA support.
 LOCAL_LLM_N_GPU_LAYERS = int(os.getenv("LOCAL_LLM_N_GPU_LAYERS", "-1"))
 
-# Groq: hosted llama-3.1-8b-instant, same weights as the local model but
-# ~840 tok/s vs local's ~130 tok/s. Primary generation backend - see
-# GENERATION_BACKEND_ORDER. Falls through to local/Claude if unset or if a
-# request fails before any tokens are streamed back.
-GROQ_MODEL = "llama-3.1-8b-instant"
+# Groq: llama-3.1-8b-instant was removed from Groq's hosted catalog (confirmed
+# via client.models.list() - it 404s as of Aug 2026, silently pushing every
+# request to the extractive fallback since this is the primary backend, see
+# GENERATION_BACKEND_ORDER). Replaced with openai/gpt-oss-20b, the closest
+# fast/cheap tier still on Groq's current catalog - verified live to follow
+# the language instruction correctly. Falls through to local/Claude if unset
+# or if a request fails before any tokens are streamed back.
+GROQ_MODEL = "openai/gpt-oss-20b"
 GROQ_MAX_TOKENS = 200  # matches LOCAL_LLM_MAX_TOKENS - same model, same answer-length expectations
 GROQ_TEMPERATURE = 0.1  # lowered from 0.3 (Phase 3 hardening): the live deploy's own
                          # benchmark caught the same query ("How to apply for a passport")

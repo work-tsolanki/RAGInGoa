@@ -35,7 +35,13 @@ python-multipart==0.0.6               # File upload support
 # ============================================================================
 # LLM APIs
 # ============================================================================
-anthropic==0.7.0                      # Claude API
+anthropic==0.125.0                    # Claude API - 0.7.0 (Oct 2023) constructs its httpx.Client with a
+                                       # `proxies=` kwarg that httpx 0.28.1 (see above) no longer accepts,
+                                       # so anthropic.Anthropic(...) raised TypeError on construction the
+                                       # instant ANTHROPIC_API_KEY stopped being the "mock" placeholder -
+                                       # meaning the Claude fallback was never actually reachable in
+                                       # production. Verified 0.125.0 constructs cleanly against httpx
+                                       # 0.28.1 and keeps the same messages.stream() API this project uses.
 requests==2.34.2                      # HTTP requests (synced to local venv's resolved version)
 llama-cpp-python                      # Local LLM inference (GGUF models, CPU/GPU).
                                        # For GPU: build from source with CUDA -

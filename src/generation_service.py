@@ -470,6 +470,11 @@ class GenerationService:
         if self.claude_client is None:
             raise RuntimeError("Claude client not configured")
 
+        # NOTE: production's ANTHROPIC_API_KEY is currently the "mock"
+        # placeholder (see __init__), so this backend has never actually been
+        # exercised live - this model string is unverified against the real
+        # API. Confirm it's still current once a real key is set; if it
+        # 404s the same way GROQ_MODEL did, this is the first place to check.
         with self.claude_client.messages.stream(
             model="claude-3-haiku-20240307",
             max_tokens=max_tokens or 200,
