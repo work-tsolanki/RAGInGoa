@@ -25,6 +25,16 @@ def test_key_changes_with_prompt_version():
     assert k_old != k_new
 
 
+def test_key_changes_with_language():
+    """Same query text and doc set, different requested answer language,
+    must produce different keys - otherwise a literal cache hit could serve
+    an answer generated in the wrong language (see semantic_cache's matching
+    regression test for the fuzzy-match version of this same bug)."""
+    k_en = make_cache_key("What is Goa famous for?", ["chunk_1"], language="en")
+    k_hi = make_cache_key("What is Goa famous for?", ["chunk_1"], language="hi")
+    assert k_en != k_hi
+
+
 def test_entry_stored_under_old_prompt_version_misses_after_bump():
     """Direct proof of the PROMPT_VERSION guard on the literal cache,
     mirroring the semantic-cache version of this same check: seed a

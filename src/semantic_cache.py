@@ -55,18 +55,26 @@ class SemanticCache:
         norm = np.linalg.norm(vec)
         return vec / norm if norm > 0 else vec
 
-    def lookup(self, query_embedding: np.ndarray, prompt_version: str = PROMPT_VERSION):
+    def lookup(self, query_embedding: np.ndarray, language: str = None, prompt_version: str = PROMPT_VERSION):
         """Returns (payload, similarity) on a hit, (None, best_similarity_seen) on a miss.
         Entries stored under a different prompt_version are skipped entirely
         (treated like an expired entry), not just deprioritized - a fuzzy
         match to a stale-style answer is exactly the failure case this
-        guards against."""
+        guards against. Entries cached for a different answer language are
+        skipped the same way: the multilingual embedding model deliberately
+        maps translated versions of the same question close together, which
+        is exactly what would otherwise let a Hindi query fuzzy-match an
+        English-cached answer (or vice versa) well above threshold - see the
+        cross-language regression test."""
         now = time.time()
-        expired = [key for key, (_, _, expiry, _) in self.entries.items() if now > expiry]
+        expired = [key for key, (_, _, expiry, _, _) in self.entries.items() if now > expiry]
         for key in expired:
             del self.entries[key]
 
-        candidate_keys = [key for key, (_, _, _, v) in self.entries.items() if v == prompt_version]
+        candidate_keys = [
+            key for key, (_, _, _, v, lang) in self.entries.items()
+            if v == prompt_version and lang == language
+        ]
         if not candidate_keys:
             self.misses += 1
             return None, 0.0
@@ -87,10 +95,11 @@ class SemanticCache:
         self.misses += 1
         return None, best_sim
 
-    def set(self, key: str, query_embedding: np.ndarray, payload: dict, prompt_version: str = PROMPT_VERSION):
+    def set(self, key: str, query_embedding: np.ndarray, payload: dict,
+            language: str = None, prompt_version: str = PROMPT_VERSION):
         """key is only used for logging/debugging - the embedding drives the actual lookup."""
         expiry = time.time() + self.ttl_seconds
-        self.entries[key] = (self._normalize(query_embedding), payload, expiry, prompt_version)
+        self.entries[key] = (self._normalize(query_embedding), payload, expiry, prompt_version, language)
         self.entries.move_to_end(key)
         if len(self.entries) > self.max_size:
             self.entries.popitem(last=False)

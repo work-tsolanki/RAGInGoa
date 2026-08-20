@@ -382,7 +382,7 @@ async def _handle_query(request: QueryRequest) -> QueryResponse:
         # phrasing of the same intent that the literal cache's exact-match
         # key would never hit.
         start = time.time()
-        semantic_payload, semantic_similarity = semantic_cache.lookup(query_embedding)
+        semantic_payload, semantic_similarity = semantic_cache.lookup(query_embedding, language=request.language)
         latency_breakdown["semantic_cache_lookup"] = (time.time() - start) * 1000
 
         if semantic_payload is not None:
@@ -444,7 +444,7 @@ async def _handle_query(request: QueryRequest) -> QueryResponse:
         # Keyed on (query, retrieved doc set) - retrieval above always runs
         # fresh, so a corpus change that alters which docs a query retrieves
         # changes the key automatically instead of serving stale context.
-        cache_key = make_cache_key(request.query_text, [doc["doc_id"] for doc in retrieved_docs])
+        cache_key = make_cache_key(request.query_text, [doc["doc_id"] for doc in retrieved_docs], language=request.language)
         cache_hit = False
         cache_type = None
         is_hedged = False  # never True on a cache hit - hedges are never cached, see below
@@ -508,7 +508,7 @@ async def _handle_query(request: QueryRequest) -> QueryResponse:
                     "answer": answer,
                     "grounding_score": grounding_score,
                     "retrieved_documents": formatted_docs,
-                })
+                }, language=request.language)
 
         # ====== Step 9: Format Response ======
         total_latency = (time.time() - pipeline_start) * 1000
@@ -618,7 +618,9 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
         return
 
     start = time.time()
-    semantic_payload, semantic_similarity = await asyncio.to_thread(semantic_cache.lookup, query_embedding)
+    semantic_payload, semantic_similarity = await asyncio.to_thread(
+        semantic_cache.lookup, query_embedding, language=target_language
+    )
     latency_breakdown["semantic_cache_lookup"] = (time.time() - start) * 1000
 
     if semantic_payload is not None:
@@ -679,7 +681,7 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
 
     context_docs = [doc["content"] for doc in retrieved_docs]
 
-    cache_key = make_cache_key(query_text, [doc["doc_id"] for doc in retrieved_docs])
+    cache_key = make_cache_key(query_text, [doc["doc_id"] for doc in retrieved_docs], language=target_language)
     cache_hit = False
     cache_type = None
     is_hedged = False  # never True on a cache hit - hedges are never cached, see below
@@ -764,7 +766,7 @@ async def _run_query_pipeline(websocket, query_text, top_k, target_language, pip
                 "answer": answer,
                 "grounding_score": grounding_score,
                 "retrieved_documents": formatted_docs,
-            })
+            }, language=target_language)
 
     latency_breakdown["total"] = (time.time() - pipeline_start) * 1000
     await _maybe_send(websocket, {

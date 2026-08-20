@@ -158,6 +158,27 @@ def test_lookup_unaffected_by_query_embedding_magnitude():
     assert sim_small == pytest.approx(sim_large) == pytest.approx(1.0)
 
 
+def test_entries_from_different_languages_dont_cross_match():
+    """Regression check: the multilingual embedding model maps translated
+    versions of the same question close together (by design), so without a
+    language check a query in one language would silently serve back an
+    answer generated - and cached - in a completely different language.
+    Simulates that near-duplicate-embedding-across-languages case directly,
+    since a real cross-lingual pair's embeddings aren't reproducible here
+    without loading the actual model."""
+    cache = SemanticCache(similarity_threshold=0.9)
+    cache.set("q1", _vec(1, 0, 0), {"answer": "Goa is famous for its beaches."}, language="en")
+
+    # Same (near-identical) embedding, but the caller wants a Hindi answer -
+    # must miss rather than return the English-cached payload.
+    payload, sim = cache.lookup(_vec(1, 0, 0), language="hi")
+    assert payload is None
+
+    # Control: looked up in the language it was cached under, it still hits.
+    payload, sim = cache.lookup(_vec(1, 0, 0), language="en")
+    assert payload == {"answer": "Goa is famous for its beaches."}
+
+
 def test_vectorized_lookup_matches_brute_force_on_random_data():
     """Correctness proof for the vectorize+pre-normalize rewrite: compare
     the vectorized lookup's result against an independent, naive per-entry

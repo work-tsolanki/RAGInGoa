@@ -30,10 +30,15 @@ def normalize_query(query: str) -> str:
     return q
 
 
-def make_cache_key(query: str, doc_ids: list, prompt_version: str = PROMPT_VERSION) -> str:
+def make_cache_key(query: str, doc_ids: list, language: str = "en", prompt_version: str = PROMPT_VERSION) -> str:
+    """`language` is folded into the key (not just query+docs) so a cached
+    answer generated for one target language can never be served back to a
+    request for a different one - the same (query, doc set) can legitimately
+    need answers in several languages, and those are different cache
+    entries, not a collision."""
     normalized = normalize_query(query)
     doc_key = ",".join(sorted(doc_ids))
-    raw = f"{prompt_version}|{normalized}|{doc_key}"
+    raw = f"{prompt_version}|{language}|{normalized}|{doc_key}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
